@@ -1,4 +1,3 @@
-
 const SESSION_TIMEOUT = 2 * 60 * 1000; // 2 Minuten in Millisekunden
 
 // Benutzerdaten im Session Storage
@@ -350,7 +349,7 @@ document.getElementById('timeEntry').addEventListener('submit', async (e) => {
         Modal.error('Bitte melden Sie sich zuerst an');
         return;
     }
-
+    
     const formData = {
         employeeId: currentUser.id,
         date: document.getElementById('date').value,
@@ -373,6 +372,16 @@ document.getElementById('timeEntry').addEventListener('submit', async (e) => {
         if (data.success) {
             Modal.success('Zeit erfolgreich erfasst');
             document.getElementById('timeEntry').reset();
+            
+            // Wechsel zum Zeitkonto-Bereich
+            document.getElementById('timeEntryForm').classList.add('hidden');
+            document.getElementById('timeHistory').classList.remove('hidden');
+            
+            // Lade die Zeitkonto-Daten neu
+            await loadTimeHistory();
+            
+            // Optional: Scrolle zum Anfang der Liste
+            document.getElementById('timeHistory').scrollIntoView({ behavior: 'smooth' });
         } else {
             Modal.error(data.message || 'Fehler beim Speichern der Zeit');
         }

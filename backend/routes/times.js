@@ -7,6 +7,9 @@ const { google } = require('googleapis');
 
 let timeTrackingDoc;
 
+// Neues Set, um bereits verarbeitete uniqueKey-Werte kurzzeitig zu speichern
+const processedRequests = new Set();
+
 async function getTimeTrackingDoc() {
     if (!timeTrackingDoc) {
         timeTrackingDoc = await initializeGoogleSheet(config.sheets.timeTracking.id);
@@ -17,8 +20,10 @@ async function getTimeTrackingDoc() {
 // Middleware für Berechtigungsprüfung
 function checkPermission(permission, action = 'view') {
     return (req, res, next) => {
-        const employeeId = req.query.employeeId || req.body.employeeId || req.params.employeeId;
-        console.log('Prüfe Berechtigung für:', { employeeId, permission, action });
+        // Bevorzugt wird der eingeloggte User aus der Session (stellen Sie sicher, dass express-session in server.js konfiguriert ist)
+        const sessionUser = req.session && req.session.user;
+        const employeeId = sessionUser ? sessionUser.id : (req.query.employeeId || req.body.employeeId || req.params.employeeId);
+        console.log('Prüfe Berechtigung für:', { employeeId, permission, action, sessionUser });
         
         if (hasPermission(employeeId, permission, action)) {
             next();

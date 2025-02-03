@@ -12,6 +12,7 @@ const session = require('express-session');
 const inventoryRoutes = require('./routes/inventory');
 const timeRoutes = require('./routes/times');
 const { MemoryStore } = require('express-session');
+const authRoutes = require('./routes/auth');
 
 // Session-Timeout in Millisekunden (2 Minuten)
 const SESSION_TIMEOUT = 2 * 60 * 1000;
@@ -26,15 +27,15 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static('frontend'));
 
-// Korrigierte Session-Konfiguration
+// Konfiguriere express-session
 app.use(session({
-    secret: 'geheimer-schluessel',
+    secret: process.env.SESSION_SECRET || 'geheim', // idealerweise als Umgebungsvariable setzen
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false, // Für Entwicklung
-        maxAge: SESSION_TIMEOUT, // Synchronisiert mit Client
-        httpOnly: true
+        maxAge: 120000, // 2 Minuten
+        httpOnly: true,
+        secure: false // auf true setzen, wenn HTTPS verwendet wird
     },
     store: new MemoryStore() // Für Entwicklung, in Produktion Redis/MongoDB verwenden
 }));
@@ -67,7 +68,7 @@ app.use((req, res, next) => {
 
 // Middleware zum Schutz von Routen
 const requireAuth = (req, res, next) => {
-    if (!req.session.userId) {
+    if (!req.session.user) {
         return res.status(401).json({ error: 'Nicht angemeldet' });
     }
     next();
@@ -100,7 +101,10 @@ app.post('/api/login', async (req, res) => {
             };
             
             console.log('Berechnete Berechtigungen:', permissions);
-
+            
+            // Speichere den authentifizierten Benutzer in der Session
+            req.session.user = employee;
+            
             res.json({
                 success: true,
                 employeeId: employee.id,
@@ -124,11 +128,11 @@ app.post('/api/login', async (req, res) => {
 
 // Neue Route zum Überprüfen des Login-Status
 app.get('/api/check-auth', (req, res) => {
-    if (req.session.userId) {
+    if (req.session.user) {
         res.json({
             isLoggedIn: true,
-            userId: req.session.userId,
-            userName: req.session.userName
+            userId: req.session.user.id,
+            userName: req.session.user.name
         });
     } else {
         res.json({ isLoggedIn: false });
@@ -144,6 +148,9 @@ app.post('/api/logout', (req, res) => {
         res.json({ success: true });
     });
 });
+
+// Mounte den Auth-Router
+app.use('/api/auth', authRoutes);
 
 // Routes einbinden
 app.use('/api/inventory', inventoryRoutes);
