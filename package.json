@@ -1,0 +1,23 @@
+{
+  "name": "zeiterfassung",
+  "version": "1.0.0",
+  "description": "Zeiterfassungs-Tool mit Google Sheets Integration",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^10.0.0",
+    "express": "^4.17.1",
+    "express-session": "^1.18.1",
+    "google-auth-library": "^9.4.1",
+    "google-spreadsheet": "^4.1.4",
+    "googleapis": "^144.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

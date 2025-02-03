@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Zeiterfassung</title>
+    <link rel="stylesheet" href="css/styles.css?v=1">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <div class="container">
+        <div id="loginForm" class="form-container">
+            <h2>Anmeldung</h2>
+            <form id="login">
+                <input type="text" id="employeeId" placeholder="Mitarbeiter-ID" required>
+                <input type="password" id="password" placeholder="Passwort" required>
+                <button type="submit">Anmelden</button>
+            </form>
+        </div>
+
+        <div id="mainContent" class="hidden">
+            <div class="header">
+                <span id="userInfo"></span>
+                <button id="logoutButton">Abmelden</button>
+            </div>
+            <div class="nav-buttons">
+                <div class="module-nav">
+                    <button id="showTimeTrackingModule" class="module-btn active">Zeiterfassung</button>
+                    <button id="showInventoryModule" class="module-btn">Warenwirtschaft</button>
+                </div>
+            </div>
+            
+            <!-- Zeiterfassungs-Bereich -->
+            <div id="timeTracking" class="module active">
+                <div id="timeTrackingButtons" class="feature-nav">
+                    <button id="showTimeEntryForm">Neue Zeiterfassung</button>
+                    <button id="showTimeHistory">Mein Zeitkonto</button>
+                </div>
+                
+                <!-- Bestehende Zeiterfassungs-Komponenten -->
+                <div id="timeEntryForm" class="form-container hidden">
+                    <h2>Zeiterfassung</h2>
+                    <form id="timeEntry">
+                        <input type="date" id="date" required>
+                        <label for="location">Standort:</label>
+                        <select id="location" required>
+                            <option value="">Bitte wählen...</option>
+                        </select>
+                        <input type="time" id="startTime" required>
+                        <input type="time" id="endTime" required>
+                        <button type="submit">Zeit erfassen</button>
+                    </form>
+                </div>
+                
+                <div id="timeHistory" class="hidden">
+                    <div class="timehistory-header">
+                        <h2>Mein Zeitkonto <span id="userName"></span></h2>
+                        <button id="deleteSelectedEntries" class="delete-button" disabled>
+                            Ausgewählte Einträge löschen
+                        </button>
+                    </div>
+                    <div class="table-container">
+                        <table id="timeTable">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <input type="checkbox" id="selectAll" title="Alle auswählen">
+                                    </th>
+                                    <th>Datum</th>
+                                    <th>Tag</th>
+                                    <th>Standort</th>
+                                    <th>Startzeit</th>
+                                    <th>Endzeit</th>
+                                    <th>Arbeitszeit</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="summary">
+                        <p>Gesamtarbeitszeit: <span id="totalHours">0:00</span></p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Warenwirtschafts-Bereich -->
+            <div id="inventory" class="module">
+                <div id="inventoryButtons" class="feature-nav hidden">
+                    <button id="showInventoryList">Bestandsübersicht</button>
+                    <button id="showInventoryMovements">Bewegungen</button>
+                    <button id="showNewMovement">Bewegungen buchen</button>
+                </div>
+                
+                <div id="inventoryContent">
+                    <!-- Hier werden die verschiedenen Ansichten dynamisch geladen -->
+                    <div id="inventoryListView" class="inventory-view hidden">
+                        <h2>Bestandsübersicht</h2>
+                        <div class="table-container">
+                            <table id="inventoryTable">
+                                <thead>
+                                    <tr>
+                                        <th>Artikel-ID</th>
+                                        <th>Name</th>
+                                        <th>Kategorie</th>
+                                        <th>Bestand</th>
+                                        <th>Min. Bestand</th>
+                                        <th>Einheit</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="inventoryMovementsView" class="inventory-view hidden">
+                        <h2>Bewegungen</h2>
+                        <div class="filter-container">
+                            <select id="locationFilter">
+                                <option value="">Alle Lagerorte...</option>
+                            </select>
+                            <select id="typeFilter">
+                                <option value="">Alle Bewegungstypen...</option>
+                            </select>
+                            <select id="articleFilter">
+                                <option value="">Alle Artikel...</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="dateFromFilter">Datum von:</label>
+                            <input type="date" id="dateFromFilter" class="filter-input">
+                            
+                            <label for="dateToFilter">bis:</label>
+                            <input type="date" id="dateToFilter" class="filter-input">
+                            <button id="applyDateFilter" class="filter-button">Anwenden</button>
+                            <button id="resetFilters" class="filter-button filter-button-reset">Alle Filter zurücksetzen</button>
+                        </div>
+                        <div class="entries-filter">
+                            <label for="entriesPerPage">Einträge pro Seite:</label>
+                            <select id="entriesPerPage" class="form-control">
+                                <option value="10">10 Einträge</option>
+                                <option value="20">20 Einträge</option>
+                                <option value="50">50 Einträge</option>
+                            </select>
+                        </div>
+                        <div class="table-container">
+                            <table id="movementsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Datum</th>
+                                        <th>Mitarbeiter</th>
+                                        <th>Lagerort ID</th>
+                                        <th>Lagerort</th>
+                                        <th>Typ ID</th>
+                                        <th>Trans Typ</th>
+                                        <th>Artikel ID</th>
+                                        <th>Artikel</th>
+                                        <th>Transaktionsmenge</th>
+                                        <th>Bestand LO</th>
+                                        <th>Buchungstext</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="pagination">
+                            <button id="prevPage" class="pagination-button" disabled>&laquo;</button>
+                            <span id="pageInfo">Seite <span id="currentPage">1</span> von <span id="totalPages">1</span></span>
+                            <button id="nextPage" class="agination-button">→</button>
+                        </div>
+                    </div>
+
+                    <div id="newMovementView" class="inventory-view hidden">
+                        <h2>Neue Bewegung buchen</h2>
+                        <form id="newMovementForm" class="form-container">
+                            <div class="form-group">
+                                <label for="newLocationId">Lagerort:*</label>
+                                <select id="newLocationId" required>
+                                    <option value="">Bitte wählen...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="newTypeId">Bewegungstyp:*</label>
+                                <select id="newTypeId" required>
+                                    <option value="">Bitte wählen...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="newArticleId">Artikel:*</label>
+                                <select id="newArticleId" required>
+                                    <option value="">Bitte wählen...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="newQuantity">Transaktionsmenge:*</label>
+                                <input type="number" id="newQuantity" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="newText">Buchungstext:</label>
+                                <textarea id="newText" rows="3"></textarea>
+                            </div>
+                            
+                            <button type="submit" class="submit-button">Buchen</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal -->
+    <div id="customModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h2 id="modalTitle"></h2>
+            <p id="modalMessage"></p>
+            <div id="modalButtons" class="modal-buttons">
+                <button id="modalConfirm" class="btn btn-primary">OK</button>
+                <button id="modalCancel" class="btn btn-secondary">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+    <script src="js/main.js"></script>
+    <script src="js/inventory.js"></script>
+    <script src="js/timeTracking.js"></script>
+</body>
+</html> 
