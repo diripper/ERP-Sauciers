@@ -344,21 +344,23 @@ document.getElementById('login').addEventListener('submit', async (e) => {
 // Event-Listener für das Zeiterfassungs-Formular
 document.getElementById('timeEntry').addEventListener('submit', async (e) => {
     e.preventDefault();
-
-    if (!currentUser) {
-        Modal.error('Bitte melden Sie sich zuerst an');
+    
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn.disabled) {
         return;
     }
     
-    const formData = {
-        employeeId: currentUser.id,
-        date: document.getElementById('date').value,
-        location: document.getElementById('location').value,
-        startTime: document.getElementById('startTime').value,
-        endTime: document.getElementById('endTime').value
-    };
-
+    submitBtn.disabled = true;
+    
     try {
+        const formData = {
+            employeeId: currentUser.id,
+            date: document.getElementById('date').value,
+            location: document.getElementById('location').value,
+            startTime: document.getElementById('startTime').value,
+            endTime: document.getElementById('endTime').value
+        };
+        
         const response = await fetch('/api/time/entry', {
             method: 'POST',
             headers: {
@@ -366,28 +368,25 @@ document.getElementById('timeEntry').addEventListener('submit', async (e) => {
             },
             body: JSON.stringify(formData)
         });
-
+        
         const data = await response.json();
         
         if (data.success) {
             Modal.success('Zeit erfolgreich erfasst');
             document.getElementById('timeEntry').reset();
             
-            // Wechsel zum Zeitkonto-Bereich
             document.getElementById('timeEntryForm').classList.add('hidden');
             document.getElementById('timeHistory').classList.remove('hidden');
             
-            // Lade die Zeitkonto-Daten neu
             await loadTimeHistory();
-            
-            // Optional: Scrolle zum Anfang der Liste
-            document.getElementById('timeHistory').scrollIntoView({ behavior: 'smooth' });
         } else {
             Modal.error(data.message || 'Fehler beim Speichern der Zeit');
         }
     } catch (error) {
         console.error('Fehler beim Speichern:', error);
         Modal.error('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+    } finally {
+        submitBtn.disabled = false;
     }
 });
 

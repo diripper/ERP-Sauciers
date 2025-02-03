@@ -10,6 +10,17 @@ let timeTrackingDoc;
 // Neues Set, um bereits verarbeitete uniqueKey-Werte kurzzeitig zu speichern
 const processedRequests = new Set();
 
+// Map zur Sperrung von Requests während der Verarbeitung
+const processingLocks = new Map();
+
+// Timeout für Locks (5 Sekunden)
+const LOCK_TIMEOUT = 5000;
+
+// Hilfsfunktion zum Generieren eines Lock-Keys
+function getLockKey(data) {
+    return `${data.employeeId}-${data.date}-${data.location}-${data.startTime}-${data.endTime}`;
+}
+
 async function getTimeTrackingDoc() {
     if (!timeTrackingDoc) {
         timeTrackingDoc = await initializeGoogleSheet(config.sheets.timeTracking.id);
@@ -42,29 +53,56 @@ router.post('/entry', checkPermission('timeTracking', 'edit'), async (req, res) 
         const doc = await getTimeTrackingDoc();
         const { employeeId, date, location, startTime, endTime } = req.body;
         
-        const sheet = doc.sheetsByIndex[0];
-        const row = {
-            'Mitarbeiter_ID': employeeId,
-            'Datum': date,
-            'Standort': location,
-            'Startzeit': startTime,
-            'Endzeit': endTime,
-            'Timestamp': new Date().toISOString()
-        };
-
-        // Prüfung auf vorhandene Einträge
-        const existing = await sheet.getRows();
-        const exists = existing.some(r => 
-            r.get('Mitarbeiter_ID') === employeeId &&
-            r.get('Timestamp') === row.Timestamp
-        );
+        // Generiere Lock-Key für diesen Request
+        const lockKey = getLockKey({ employeeId, date, location, startTime, endTime });
         
-        if (exists) {
-            return res.json({ success: true });
+        // Prüfe ob dieser Request gerade verarbeitet wird
+        if (processingLocks.has(lockKey)) {
+            console.log('Request wird bereits verarbeitet:', lockKey);
+            return res.json({ 
+                success: true,
+                message: 'Wird bereits verarbeitet'
+            });
         }
+        
+        // Setze Lock mit Timeout
+        processingLocks.set(lockKey, Date.now());
+        setTimeout(() => processingLocks.delete(lockKey), LOCK_TIMEOUT);
 
-        await sheet.addRow(row);
-        res.json({ success: true });
+        const sheet = doc.sheetsByIndex[0];
+        
+        try {
+            // Prüfung auf vorhandene Einträge
+            const existing = await sheet.getRows();
+            const exists = existing.some(r => 
+                r.get('Mitarbeiter_ID') === employeeId &&
+                r.get('Datum') === date &&
+                r.get('Standort') === location &&
+                r.get('Startzeit') === startTime &&
+                r.get('Endzeit') === endTime
+            );
+            
+            if (exists) {
+                console.log('Eintrag existiert bereits:', lockKey);
+                return res.json({ success: true });
+            }
+
+            const row = {
+                'Mitarbeiter_ID': employeeId,
+                'Datum': date,
+                'Standort': location,
+                'Startzeit': startTime,
+                'Endzeit': endTime,
+                'Timestamp': new Date().toISOString()
+            };
+
+            await sheet.addRow(row);
+            console.log('Neue Zeile erfolgreich hinzugefügt:', lockKey);
+            res.json({ success: true });
+        } finally {
+            // Entferne Lock nach Verarbeitung
+            processingLocks.delete(lockKey);
+        }
         
     } catch (error) {
         console.error('Fehler:', error);
