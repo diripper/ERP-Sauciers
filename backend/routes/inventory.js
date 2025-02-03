@@ -15,7 +15,9 @@ async function getInventoryDoc() {
 // Middleware für Berechtigungsprüfung
 function checkPermission(permission, action = 'view') {
     return (req, res, next) => {
-        const employeeId = req.query.employeeId || req.body.employeeId || req.params.employeeId;
+        // Bevorzugt den in der Session gespeicherten Benutzer verwenden
+        const sessionUser = req.session && req.session.user;
+        const employeeId = sessionUser ? sessionUser.id : (req.query.employeeId || req.body.employeeId || req.params.employeeId);
         console.log('Prüfe Berechtigung für:', { employeeId, permission, action });
         
         if (hasPermission(employeeId, permission, action)) {
@@ -23,7 +25,7 @@ function checkPermission(permission, action = 'view') {
         } else {
             res.status(403).json({ 
                 success: false, 
-                message: 'Keine Berechtigung für diese Aktion' 
+                message: 'Keine Berechtigung für diese Aktion'
             });
         }
     };
@@ -151,9 +153,8 @@ router.post('/movements', checkPermission('inventory', 'edit'), async (req, res)
 // Bewegungshistorie abrufen
 router.get('/movements', checkPermission('inventory', 'view'), async (req, res) => {
     try {
-        // Debug-Logging der Benutzerdaten
-        console.log('Aktueller Benutzer:', req.user);
-        console.log('Berechtigungen:', req.permissions);
+        // Debug-Logging: Zeige den aus der Session geladenen Benutzer
+        console.log('Aktueller Benutzer:', req.session.user);
         
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
