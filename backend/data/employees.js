@@ -1,7 +1,8 @@
 const roles = {
     ADMIN: 'admin',
     USER: 'user',
-    INVENTORY_MANAGER: 'inventory_manager'
+    INVENTORY_MANAGER: 'inventory_manager',
+    INVENTORY_VIEWER: 'inventory-viewer'
 };
 
 const permissions = {
@@ -10,7 +11,7 @@ const permissions = {
         edit: ['admin', 'user']
     },
     inventory: {
-        view: ['admin', 'user', 'inventory_manager'],
+        view: ['admin', 'inventory-viewer', 'inventory_manager'],
         edit: ['admin', 'inventory_manager'],
         delete: ['admin']
     }
