@@ -24,15 +24,33 @@ class InventoryManager {
             nextPage: document.getElementById('nextPage'),
             currentPage: document.getElementById('currentPage'),
             totalPages: document.getElementById('totalPages'),
-            tableBody: document.querySelector('#movementsTable tbody')
+            tableBody: document.querySelector('#movementsTable tbody'),
+            newMovementForm: document.getElementById('newMovementForm'),
+            newLocationId: document.getElementById('newLocationId'),
+            newTargetLocationId: document.getElementById('newTargetLocationId'),
+            targetLocationGroup: document.getElementById('targetLocationGroup'),
+            newTypeId: document.getElementById('newTypeId'),
+            newArticleId: document.getElementById('newArticleId'),
+            newQuantity: document.getElementById('newQuantity'),
+            newText: document.getElementById('newText')
         };
+
+        if (this.elements.newTypeId) {
+            this.elements.newTypeId.addEventListener('change', () => this.handleMovementTypeChange());
+        }
+
+        if (this.elements.newMovementForm) {
+            this.elements.newMovementForm.addEventListener('submit', (e) => this.handleNewMovement(e));
+        }
     }
 
     initializeState() {
         this.state = {
             currentPage: 1,
             entriesPerPage: 10,
-            totalRows: 0
+            totalRows: 0,
+            references: null,
+            movementTypes: []
         };
     }
 
@@ -55,25 +73,47 @@ class InventoryManager {
 
     async loadInitialData() {
         try {
-            const [movements, total] = await Promise.all([
-                this.fetchMovements(),
-                this.fetchTotalCount()
-            ]);
+            const response = await fetch('/api/inventory/references');
+            const data = await response.json();
             
-            this.state.totalRows = total;
-            this.updateUI(movements);
+            if (data.success) {
+                this.state.references = data.references;
+                this.state.movementTypes = data.references.types;
+                
+                // Fülle die Auswahlfelder
+                this.populateSelects();
+            }
         } catch (error) {
-            this.handleError(error);
+            console.error('Fehler beim Laden der Initialdaten:', error);
+            Modal.error('Fehler beim Laden der Daten');
         }
     }
 
-    async fetchMovements() {
-        const response = await fetch(`/api/inventory/movements?page=${this.state.currentPage}&limit=${this.state.entriesPerPage}`, {
-            credentials: 'include'
-        });
-        
-        if (!response.ok) throw new Error('Daten konnten nicht geladen werden');
-        return response.json();
+    populateSelects() {
+        // Lagerorte
+        if (this.elements.newLocationId && this.elements.newTargetLocationId) {
+            const locations = this.state.references.locations;
+            const locationOptions = locations.map(loc => 
+                `<option value="${loc.id}">${loc.name}</option>`
+            ).join('');
+            
+            this.elements.newLocationId.innerHTML = '<option value="">Bitte wählen...</option>' + locationOptions;
+            this.elements.newTargetLocationId.innerHTML = '<option value="">Bitte wählen...</option>' + locationOptions;
+        }
+
+        // Bewegungstypen
+        if (this.elements.newTypeId) {
+            const types = this.state.references.types;
+            this.elements.newTypeId.innerHTML = '<option value="">Bitte wählen...</option>' + 
+                types.map(type => `<option value="${type.id}">${type.name}</option>`).join('');
+        }
+
+        // Artikel
+        if (this.elements.newArticleId) {
+            const articles = this.state.references.articles;
+            this.elements.newArticleId.innerHTML = '<option value="">Bitte wählen...</option>' + 
+                articles.map(article => `<option value="${article.id}">${article.name}</option>`).join('');
+        }
     }
 
     updateUI(data) {
@@ -249,40 +289,85 @@ class InventoryManager {
         }
     }
 
+    async handleMovementTypeChange() {
+        const selectedTypeId = this.elements.newTypeId.value;
+        const selectedType = this.state.movementTypes.find(type => type.id === selectedTypeId);
+        
+        console.log('Ausgewählter Typ:', selectedType);
+        
+        if (selectedType && selectedType.numberOfBookings === 2) {
+            this.elements.targetLocationGroup.style.display = 'block';
+            this.elements.newTargetLocationId.required = true;
+        } else {
+            this.elements.targetLocationGroup.style.display = 'none';
+            this.elements.newTargetLocationId.required = false;
+            this.elements.newTargetLocationId.value = '';
+        }
+    }
+
     async handleNewMovement(e) {
         e.preventDefault();
         
-        const movement = {
-            articleId: document.getElementById('articleSelect').value,
-            type: document.getElementById('movementType').value,
-            quantity: parseInt(document.getElementById('quantity').value),
-            reason: document.getElementById('reason').value,
-            employeeId: currentUser.id
+        const selectedTypeId = this.elements.newTypeId.value;
+        const selectedType = this.state.movementTypes.find(type => type.id === selectedTypeId);
+        
+        const baseMovement = {
+            mitarbeiter_id: this.currentUser.id,
+            typ_id: selectedTypeId,
+            artikel_id: this.elements.newArticleId.value,
+            transaktionsmenge: parseInt(this.elements.newQuantity.value),
+            buchungstext: this.elements.newText.value || '',
+            lagerort_id: this.elements.newLocationId.value
         };
 
         try {
-            const response = await fetch('/api/inventory/movements', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(movement)
-            });
+            if (selectedType?.numberOfBookings === 2) {
+                // Erste Buchung (negative Menge)
+                const firstMovement = {
+                    ...baseMovement,
+                    transaktionsmenge: -Math.abs(baseMovement.transaktionsmenge)
+                };
 
-            const data = await response.json();
-            
-            if (data.success) {
-                Modal.show('Erfolg', 'Bewegung wurde erfolgreich gebucht');
-                this.movementForm.reset();
-                // Optional: Zurück zur Bewegungsübersicht
-                this.showView('movements');
+                // Zweite Buchung (positive Menge im Ziellager)
+                const secondMovement = {
+                    ...baseMovement,
+                    transaktionsmenge: Math.abs(baseMovement.transaktionsmenge),
+                    lagerort_id: this.elements.newTargetLocationId.value
+                };
+
+                // Sequentielle Buchungen mit kleinem Zeitversatz
+                await this.postMovement(firstMovement);
+                await new Promise(resolve => setTimeout(resolve, 100)); // 100ms Verzögerung
+                await this.postMovement(secondMovement);
             } else {
-                Modal.error(data.message || 'Fehler beim Buchen der Bewegung');
+                // Normale Einzelbuchung
+                await this.postMovement(baseMovement);
             }
+
+            Modal.show('Erfolg', 'Bewegung wurde erfolgreich gebucht');
+            this.elements.newMovementForm.reset();
+            this.elements.targetLocationGroup.style.display = 'none';
+            
         } catch (error) {
             console.error('Fehler beim Buchen der Bewegung:', error);
             Modal.error('Fehler beim Buchen der Bewegung');
         }
+    }
+
+    async postMovement(movement) {
+        const response = await fetch('/api/inventory/movements', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(movement)
+        });
+
+        const data = await response.json();
+        if (!data.success) {
+            throw new Error(data.message || 'Fehler beim Buchen der Bewegung');
+        }
+        return data;
     }
 }
 

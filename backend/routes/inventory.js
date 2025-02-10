@@ -209,7 +209,8 @@ router.get('/movements', checkPermission('inventory', 'view'), async (req, res) 
             })),
             types: typeRows.map(row => ({
                 id: row._rawData[0],
-                name: row._rawData[1]
+                name: row._rawData[1],
+                numberOfBookings: parseInt(row._rawData[2]) || 1
             })),
             articles: articleRows.map(row => ({
                 id: row._rawData[0],
@@ -275,6 +276,65 @@ router.get('/movements', checkPermission('inventory', 'view'), async (req, res) 
         res.status(500).json({
             success: false,
             message: 'Fehler beim Laden der Bewegungen'
+        });
+    }
+});
+
+// Referenzdaten abrufen
+router.get('/references', checkPermission('inventory', 'view'), async (req, res) => {
+    try {
+        console.log('Starte Laden der Referenzdaten...');
+        const doc = await getInventoryDoc();
+        
+        // Debug: Zeige verfügbare Sheets
+        console.log('Google Sheet geladen:', doc.title);
+        console.log('Gefundene Sheets:', {
+            lagerort: doc.sheetsByTitle['Lagerort']?.title,
+            transaktionstypen: doc.sheetsByTitle['Transaktionstypen']?.title,
+            artikel: doc.sheetsByTitle['Artikel']?.title
+        });
+
+        const locationSheet = doc.sheetsByTitle['Lagerort'];
+        const typeSheet = doc.sheetsByTitle['Transaktionstypen'];
+        const articleSheet = doc.sheetsByTitle['Artikel'];
+        
+        const locationRows = await locationSheet.getRows();
+        const typeRows = await typeSheet.getRows();
+        const articleRows = await articleSheet.getRows();
+
+        console.log('Anzahl geladener Zeilen:', {
+            locations: locationRows.length,
+            types: typeRows.length,
+            articles: articleRows.length
+        });
+
+        const references = {
+            locations: locationRows.map(row => ({
+                id: row._rawData[0],
+                name: row._rawData[1]
+            })),
+            types: typeRows.map(row => ({
+                id: row._rawData[0],
+                name: row._rawData[1],
+                numberOfBookings: parseInt(row._rawData[2]) || 1
+            })),
+            articles: articleRows.map(row => ({
+                id: row._rawData[0],
+                name: row._rawData[1]
+            }))
+        };
+
+        console.log('Referenzdaten:', references);
+
+        res.json({ 
+            success: true, 
+            references: references
+        });
+    } catch (error) {
+        console.error('Fehler beim Laden der Referenzdaten:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Fehler beim Laden der Referenzdaten'
         });
     }
 });
