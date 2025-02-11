@@ -2,7 +2,7 @@ const roles = {
     ADMIN: 'admin',
     USER: 'user',
     INVENTORY_MANAGER: 'inventory_manager',
-    INVENTORY_VIEWER: 'inventory-viewer'
+    INVENTORY_VIEWER: 'inventory_viewer'
 };
 
 const permissions = {
@@ -11,7 +11,7 @@ const permissions = {
         edit: ['admin', 'user']
     },
     inventory: {
-        view: ['admin', 'inventory-viewer', 'inventory_manager'],
+        view: ['admin', 'inventory_viewer', 'inventory_manager'],
         edit: ['admin', 'inventory_manager'],
         delete: ['admin']
     }
@@ -61,9 +61,26 @@ function hasPermission(employeeId, permission, action = 'view') {
     return employee.roles.some(role => allowedRoles.includes(role));
 }
 
+function getUserPermissions(employeeId) {
+    const employee = employees[employeeId];
+    if (!employee) return null;
+    
+    const userPermissions = {};
+    
+    Object.entries(permissions).forEach(([module, actions]) => {
+        userPermissions[module] = {};
+        Object.entries(actions).forEach(([action, allowedRoles]) => {
+            userPermissions[module][action] = employee.roles.some(role => allowedRoles.includes(role));
+        });
+    });
+    
+    return userPermissions;
+}
+
 module.exports = { 
     employees, 
     roles, 
     permissions,
-    hasPermission 
+    hasPermission,
+    getUserPermissions 
 }; 

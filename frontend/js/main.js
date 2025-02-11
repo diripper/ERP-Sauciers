@@ -270,24 +270,32 @@ function showLoggedInState() {
     initializeModuleNavigation();
 
     // Lade Daten nur wenn entsprechende Berechtigung vorhanden
-    if (hasPermission('timeTracking', 'view')) {
+    if (currentUser?.permissions?.timeTracking?.view) {
         loadLocations();
         loadTimeHistory();
     }
     
     // Lade Inventardaten wenn Berechtigung vorhanden
-    if (hasPermission('inventory', 'view')) {
+    if (currentUser?.permissions?.inventory?.view) {
         // Lade initial die Referenzdaten
         loadReferenceData();
     }
 
     // Initialisiere InventoryState nach Login
-    initializeInventoryState();
+    if (currentUser?.permissions?.inventory?.view) {
+        initializeInventoryState();
+    }
 }
 
 // Neue Funktion zum Laden der Referenzdaten
 async function loadReferenceData() {
     try {
+        // Prüfe zuerst die Berechtigung
+        if (!currentUser?.permissions?.inventory?.view) {
+            console.log('Keine Berechtigung zum Laden der Referenzdaten');
+            return;
+        }
+
         const response = await fetch(`/api/inventory/references?employeeId=${currentUser.id}&nocache=${Date.now()}`);
         const data = await response.json();
         
@@ -295,9 +303,15 @@ async function loadReferenceData() {
             references = data.references;
             // Lade die Filter-Optionen neu
             loadFilterOptions();
+        } else {
+            throw new Error(data.message || 'Fehler beim Laden der Referenzdaten');
         }
     } catch (error) {
         console.error('Fehler beim Laden der Referenzdaten:', error);
+        // Zeige Fehlermeldung nur an, wenn der User die Berechtigung hat
+        if (currentUser?.permissions?.inventory?.view) {
+            Modal.error('Fehler beim Laden der Referenzdaten');
+        }
     }
 }
 
@@ -364,21 +378,11 @@ document.getElementById('login').addEventListener('submit', async (e) => {
             // Token zuerst speichern
             sessionStorage.setItem('token', data.token);
             
+            // Benutzer mit den vom Backend erhaltenen Berechtigungen speichern
             currentUser = {
                 id: data.employeeId,
                 name: data.name,
-                permissions: {
-                    timeTracking: {
-                        view: true,
-                        write: true,
-                        delete: true
-                    },
-                    inventory: {
-                        view: true,
-                        write: true,
-                        delete: true
-                    }
-                }
+                permissions: data.permissions // Verwende die Berechtigungen vom Backend
             };
             
             // Debug-Logging für User-Objekt
@@ -387,7 +391,7 @@ document.getElementById('login').addEventListener('submit', async (e) => {
             // User-Objekt nach Token speichern
             sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
             
-            updateSessionTimer(); // Timer nach erfolgreichem Login setzen
+            updateSessionTimer();
             // Clear Inventory-Daten beim erneuten Login
             allMovements = [];
             filteredMovements = [];
@@ -646,10 +650,7 @@ function initializeModuleNavigation() {
     
     // Debug-Ausgaben
     console.log('Current User:', currentUser);
-    console.log('Berechtigungen:', {
-        timeTracking: hasPermission('timeTracking', 'view'),
-        inventory: hasPermission('inventory', 'view')
-    });
+    console.log('Berechtigungen:', currentUser?.permissions);
 
     // Setze alle Module initial auf inaktiv
     timeTrackingModule.classList.remove('active');
@@ -658,7 +659,7 @@ function initializeModuleNavigation() {
     let visibleModules = 0;
 
     // Zeiterfassungs-Modul
-    if (hasPermission('timeTracking', 'view')) {
+    if (currentUser?.permissions?.timeTracking?.view) {
         console.log('Zeiterfassung erlaubt');
         timeTrackingModule.style.display = '';
         showTimeTrackingBtn.style.display = '';
@@ -675,7 +676,7 @@ function initializeModuleNavigation() {
     }
 
     // Warenwirtschafts-Modul
-    if (hasPermission('inventory', 'view')) {
+    if (currentUser?.permissions?.inventory?.view) {
         console.log('Warenwirtschaft erlaubt');
         inventoryModule.style.display = '';
         showInventoryBtn.style.display = '';
@@ -685,6 +686,7 @@ function initializeModuleNavigation() {
             switchToModule('inventory');
         });
     } else {
+        console.log('Warenwirtschaft nicht erlaubt');
         inventoryModule.style.display = 'none';
         showInventoryBtn.style.display = 'none';
     }
