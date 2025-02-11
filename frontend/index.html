@@ -182,13 +182,7 @@
                                     <option value="">Bitte wählen...</option>
                                 </select>
                             </div>
-                            
-                            <div class="form-group" id="targetLocationGroup" style="display: none;">
-                                <label for="newTargetLocationId">Ziel-Lagerort:*</label>
-                                <select id="newTargetLocationId">
-                                    <option value="">Bitte wählen...</option>
-                                </select>
-                            </div>
+
                             
                             <div class="form-group">
                                 <label for="newTypeId">Bewegungstyp:*</label>
@@ -197,6 +191,13 @@
                                 </select>
                             </div>
                             
+                            <div class="form-group" id="targetLocationGroup" style="display: none;">
+                                <label for="newTargetLocationId">Ziel-Lagerort:*</label>
+                                <select id="newTargetLocationId">
+                                    <option value="">Bitte wählen...</option>
+                                </select>
+                            </div>
+
                             <div class="form-group">
                                 <label for="newArticleId">Artikel:*</label>
                                 <select id="newArticleId" required>
@@ -233,6 +234,19 @@
             </div>
         </div>
     </div>
+    <!-- Utility Scripts -->
+    <script src="js/utils/ErrorHandler.js"></script>
+    <script src="js/utils/EventBus.js"></script>
+    
+    <!-- Inventory Models -->
+    <script src="js/inventory/models/Movement.js"></script>
+    
+    <!-- Inventory Core -->
+    <script src="js/inventory/InventoryState.js"></script>
+    <script src="js/inventory/InventoryService.js"></script>
+    <script src="js/inventory/InventoryUI.js"></script>
+    
+    <!-- Main Application Scripts -->
     <script src="js/main.js"></script>
     <script src="js/inventory.js"></script>
     <script src="js/timeTracking.js"></script>

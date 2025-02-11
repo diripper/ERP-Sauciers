@@ -16,6 +16,20 @@ let references = {
     articles: []
 };
 
+// Test-Initialisierung für InventoryState
+let inventoryState;
+let inventoryService;
+let inventoryUI;
+
+// Event-Listener für State-Events
+eventBus.on('stateInitialized', () => {
+    console.log('InventoryState wurde initialisiert');
+});
+
+eventBus.on('referencesLoaded', (references) => {
+    console.log('Referenzdaten wurden geladen:', references);
+});
+
 // Modal-System
 const Modal = {
     modal: null,
@@ -139,13 +153,33 @@ document.addEventListener('DOMContentLoaded', () => {
 // Korrekte Session-Überprüfung
 async function checkSession() {
     try {
+        const token = sessionStorage.getItem('token');
+        if (!token) {
+            console.log('Kein Token gefunden');
+            return null;
+        }
+
         const response = await fetch('/api/auth/session', {
-            credentials: 'include'
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
         });
         
-        if (!response.ok) throw new Error('Session ungültig');
-        const data = await response.json();
+        if (!response.ok) {
+            if (response.status === 401) {
+                console.log('Session ist ungültig oder abgelaufen');
+                // Token und User-Daten löschen
+                sessionStorage.removeItem('token');
+                sessionStorage.removeItem('currentUser');
+                return null;
+            }
+            throw new Error('Fehler bei der Session-Überprüfung');
+        }
         
+        const data = await response.json();
         return data.authenticated ? data.user : null;
     } catch (error) {
         console.error('Session check failed:', error);
@@ -246,6 +280,9 @@ function showLoggedInState() {
         // Lade initial die Referenzdaten
         loadReferenceData();
     }
+
+    // Initialisiere InventoryState nach Login
+    initializeInventoryState();
 }
 
 // Neue Funktion zum Laden der Referenzdaten
@@ -321,12 +358,35 @@ document.getElementById('login').addEventListener('submit', async (e) => {
         const data = await response.json();
         
         if (data.success) {
+            // Debug-Logging für erhaltene Daten
+            console.log('Login erfolgreich, erhaltene Daten:', data);
+            
+            // Token zuerst speichern
+            sessionStorage.setItem('token', data.token);
+            
             currentUser = {
                 id: data.employeeId,
                 name: data.name,
-                permissions: data.permissions
+                permissions: {
+                    timeTracking: {
+                        view: true,
+                        write: true,
+                        delete: true
+                    },
+                    inventory: {
+                        view: true,
+                        write: true,
+                        delete: true
+                    }
+                }
             };
+            
+            // Debug-Logging für User-Objekt
+            console.log('Erstelle User-Objekt:', currentUser);
+            
+            // User-Objekt nach Token speichern
             sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
             updateSessionTimer(); // Timer nach erfolgreichem Login setzen
             // Clear Inventory-Daten beim erneuten Login
             allMovements = [];
@@ -997,21 +1057,14 @@ document.getElementById('newMovementForm').addEventListener('submit', async (e) 
             lagerort_id: document.getElementById('newLocationId').value,
             typ_id: document.getElementById('newTypeId').value,
             artikel_id: document.getElementById('newArticleId').value,
-            transaktionsmenge: document.getElementById('newQuantity').value,
+            transaktionsmenge: parseInt(document.getElementById('newQuantity').value),
             buchungstext: document.getElementById('newText').value || ''
         };
         
-        const response = await fetch(`/api/inventory/movements?employeeId=${currentUser.id}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-        });
+        // Nutze den InventoryService statt direktem API-Call
+        const success = await inventoryService.createMovement(formData);
         
-        const result = await response.json();
-        
-        if (result.success) {
+        if (success) {
             // Modal für Erfolgsmeldung anzeigen
             Modal.show(
                 'Erfolg',
@@ -1027,10 +1080,19 @@ document.getElementById('newMovementForm').addEventListener('submit', async (e) 
             // Zurück zur Bewegungsübersicht und neu laden
             document.getElementById('showInventoryMovements').click();
         } else {
-            throw new Error(result.message || 'Fehler beim Speichern der Buchung');
+            throw new Error('Fehler beim Speichern der Buchung');
         }
     } catch (error) {
         console.error('Fehler beim Buchen:', error);
-        alert('Fehler beim Speichern der Buchung: ' + error.message);
+        ErrorHandler.handle(error);
     }
-}); 
+});
+
+// Initialisiere InventoryState nach erfolgreichem Login
+async function initializeInventoryState() {
+    console.log('Initialisiere InventoryState...');
+    inventoryState = new InventoryState();
+    inventoryService = new InventoryService(inventoryState);
+    inventoryUI = new InventoryUI(inventoryState, inventoryService);
+    console.log('InventoryService und UI wurden initialisiert');
+} 

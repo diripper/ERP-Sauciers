@@ -4,6 +4,7 @@ const { initializeGoogleSheet, config } = require('../config/config');
 const { hasPermission } = require('../data/employees');
 
 let inventoryDoc;
+let worksheet;
 
 async function getInventoryDoc() {
     if (!inventoryDoc) {
@@ -100,55 +101,82 @@ router.post('/items', checkPermission('inventory', 'edit'), async (req, res) => 
     }
 });
 
-// Neue Bewegung speichern
-router.post('/movements', checkPermission('inventory', 'edit'), async (req, res) => {
+// Initialisiere das Worksheet beim Start
+async function initializeWorksheet() {
     try {
         const doc = await getInventoryDoc();
-        const sheet = doc.sheetsByTitle['Transaktionen'];
-        
-        if (!sheet) {
-            throw new Error('Transaktionen Sheet nicht gefunden');
+        await doc.loadInfo();
+        worksheet = doc.sheetsByTitle['Transaktionen'];
+        if (!worksheet) {
+            throw new Error('Worksheet "Transaktionen" nicht gefunden');
         }
-        
-        console.log('Versuche neue Bewegung zu speichern:', req.body);
-        
-        // Neue Zeile mit Spaltennamen hinzufügen
-        const newRow = {
-            'Mitarbeiter ID': req.body.mitarbeiter_id,
-            'Timestamp': new Date().toLocaleString('sv', { timeZone: 'Europe/Berlin' }).replace(' ', 'T') + '.000Z',
-            'Lagerort ID': req.body.lagerort_id,
-            'Typ ID': req.body.typ_id,
-            'Artikel ID': req.body.artikel_id,
-            'Transaktionsmenge': req.body.transaktionsmenge,
-            'Bestand LO': req.body.bestand_lo,
-            'Buchungstext': req.body.buchungstext || ''
-        };
-        
-        // Debug-Ausgabe
-        console.log('Neue Zeile wird hinzugefügt:', newRow);
-        console.log('Verfügbare Spalten:', await sheet.headerValues);
-        
-        await sheet.addRow(newRow);
-        
-        // Änderungen speichern
-        await sheet.saveUpdatedCells();
-        
-        console.log('Neue Bewegung erfolgreich gespeichert');
-        
-        res.json({
-            success: true,
-            message: 'Bewegung erfolgreich gespeichert'
-        });
+        await worksheet.loadHeaderRow();
+        console.log('Worksheet erfolgreich initialisiert');
     } catch (error) {
-        console.error('Fehler beim Speichern der Bewegung:', error);
-        console.error('Stack:', error.stack);
-        res.status(500).json({
-            success: false,
-            message: 'Fehler beim Speichern der Bewegung',
-            error: error.message
+        console.error('Fehler bei der Worksheet-Initialisierung:', error);
+        throw error;
+    }
+}
+
+// Initialisiere das Worksheet beim Start der Anwendung
+initializeWorksheet().catch(error => {
+    console.error('Fehler beim Initialisieren des Worksheets:', error);
+});
+
+// Route zum Erstellen einer neuen Bewegung
+router.post('/movements', checkPermission('inventory', 'edit'), async (req, res) => {
+    try {
+        // Stelle sicher, dass das Worksheet initialisiert ist
+        if (!worksheet || !worksheet.headerValues) {
+            await initializeWorksheet();
+        }
+
+        const result = await postMovement(req.body);
+        res.json(result);
+    } catch (error) {
+        console.error('Fehler bei der Bewegungserstellung:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: error.message || 'Interner Serverfehler bei der Bewegungserstellung'
         });
     }
 });
+
+// Neue Bewegung speichern
+async function postMovement(movementData) {
+    try {
+        // Stelle sicher, dass das Worksheet geladen ist
+        await worksheet.loadHeaderRow();
+        
+        // Prüfe ob alle erforderlichen Header vorhanden sind
+        const requiredHeaders = ['Mitarbeiter ID', 'Timestamp', 'Lagerort ID', 'Typ ID', 'Artikel ID', 'Transaktionsmenge', 'Bestand LO', 'Buchungstext'];
+        const missingHeaders = requiredHeaders.filter(header => !worksheet.headerValues.includes(header));
+        
+        if (missingHeaders.length > 0) {
+            throw new Error(`Fehlende Spalten im Worksheet: ${missingHeaders.join(', ')}`);
+        }
+
+        // Formatiere die Daten für das Worksheet
+        const row = {
+            'Mitarbeiter ID': movementData.mitarbeiter_id,
+            'Timestamp': new Date().toLocaleString('sv', { timeZone: 'Europe/Berlin' }).replace(' ', 'T') + '.000Z',
+            'Lagerort ID': movementData.lagerort_id,
+            'Typ ID': movementData.typ_id,
+            'Artikel ID': movementData.artikel_id,
+            'Transaktionsmenge': movementData.transaktionsmenge,
+            'Bestand LO': movementData.bestand_lo || '',
+            'Buchungstext': movementData.buchungstext || ''
+        };
+
+        // Füge die neue Zeile hinzu
+        await worksheet.addRow(row);
+        
+        return { success: true, message: 'Bewegung erfolgreich gespeichert' };
+    } catch (error) {
+        console.error('Fehler beim Speichern der Bewegung:', error);
+        throw new Error(`Fehler beim Speichern der Bewegung: ${error.message}`);
+    }
+}
 
 // Bewegungshistorie abrufen
 router.get('/movements', checkPermission('inventory', 'view'), async (req, res) => {
