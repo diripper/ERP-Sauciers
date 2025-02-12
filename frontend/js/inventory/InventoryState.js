@@ -41,25 +41,29 @@ class InventoryState {
         this.initialize();
     }
 
+    /**
+     * Initialisiert den State und lädt die notwendigen Daten
+     */
     async initialize() {
         try {
+            console.log('Initialisiere InventoryState...');
             await this.loadReferences();
+            console.log('Referenzdaten geladen:', this.references);
             eventBus.emit('stateInitialized');
         } catch (error) {
-            ErrorHandler.handle(error, 'Fehler bei der Initialisierung');
+            console.error('Fehler bei der Initialisierung:', error);
+            ErrorHandler.handle(error, 'Fehler beim Initialisieren des Inventory-States');
         }
     }
 
+    /**
+     * Lädt die Referenzdaten vom Server
+     */
     async loadReferences() {
         try {
-            const token = sessionStorage.getItem('token');
-            if (!token) {
-                throw new Error('Kein gültiger Token vorhanden');
-            }
-
             const response = await fetch('/api/inventory/references', {
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${sessionStorage.getItem('token')}`
                 }
             });
             
@@ -73,10 +77,10 @@ class InventoryState {
             }
 
             this.references = data.references;
+            console.log('Referenzdaten aktualisiert:', this.references);
             eventBus.emit('referencesLoaded', this.references);
-            return this.references;
         } catch (error) {
-            ErrorHandler.handle(error, 'Fehler beim Laden der Referenzdaten');
+            console.error('Fehler beim Laden der Referenzdaten:', error);
             throw error;
         }
     }
@@ -119,6 +123,27 @@ class InventoryState {
         this.cache.lastCleanup = now;
     }
 
+    /**
+     * Invalidiert den Cache
+     */
+    _invalidateCache() {
+        console.log('Invalidiere Cache und erzwinge Neuladen');
+        this.cache.results = new Map(); // Komplette Neuerstellung der Map
+        this.cache.lastCleanup = Date.now();
+        this._forceReload = true;
+        
+        // Setze die Pagination zurück auf Seite 1
+        this.pagination.currentPage = 1;
+        
+        // Lösche alle Filter
+        Object.keys(this.filters).forEach(key => {
+            this.filters[key] = '';
+        });
+    }
+
+    /**
+     * Lädt die Bewegungen vom Server
+     */
     async loadMovements() {
         try {
             if (!this.token) {
@@ -131,9 +156,9 @@ class InventoryState {
             // Cache-Schlüssel generieren
             const cacheKey = this._generateCacheKey();
             
-            // Prüfe Cache
+            // Prüfe Cache-Gültigkeit - nur wenn kein Force-Reload aktiv ist
             const cachedResult = this.cache.results.get(cacheKey);
-            if (this._isCacheValid(cachedResult)) {
+            if (!this._forceReload && this._isCacheValid(cachedResult) && this.cache.results.size > 0) {
                 console.log('Verwende Cache-Daten für:', this.filters);
                 this.movements = cachedResult.data.movements;
                 this.pagination = cachedResult.data.pagination;
@@ -141,57 +166,83 @@ class InventoryState {
                 return this.movements;
             }
 
-            // Cache-Bereinigung
-            this._cleanupCache();
+            // Wenn Cache ungültig, Force-Reload aktiv oder Cache leer, lade vom Server
+            console.log(this._forceReload ? 'Erzwinge Neuladen der Daten vom Server' : 'Cache ungültig, lade neu vom Server');
+            return await this._loadFromServer();
+        } catch (error) {
+            console.error('Fehler beim Laden der Bewegungen:', error);
+            ErrorHandler.handle(error, 'Fehler beim Laden der Bewegungen');
+            throw error;
+        } finally {
+            // Setze _forceReload zurück
+            this._forceReload = false;
+        }
+    }
 
-            // Erstelle Query-Parameter für die Anfrage
-            const queryParams = new URLSearchParams({
-                page: this.pagination.currentPage,
-                limit: this.pagination.entriesPerPage,
-                employeeId: JSON.parse(sessionStorage.getItem('currentUser'))?.id
-            });
+    /**
+     * Lädt die Daten direkt vom Server
+     * @private
+     */
+    async _loadFromServer() {
+        console.log('Lade Daten neu vom Server');
+        
+        // Cache-Bereinigung
+        this._cleanupCache();
 
-            // Füge nur nicht-leere Filter hinzu
-            Object.entries(this.filters).forEach(([key, value]) => {
-                if (value) {
-                    queryParams.append(key, value);
-                }
-            });
+        // Erstelle Query-Parameter für die Anfrage
+        const queryParams = new URLSearchParams({
+            page: this.pagination.currentPage,
+            limit: this.pagination.entriesPerPage,
+            employeeId: JSON.parse(sessionStorage.getItem('currentUser'))?.id,
+            nocache: Date.now() // Verhindere Browser-Caching
+        });
 
-            console.log('Lade Bewegungen mit Parametern:', {
-                page: this.pagination.currentPage,
-                limit: this.pagination.entriesPerPage,
-                filter: this.filters
-            });
-
-            const response = await fetch(`/api/inventory/movements?${queryParams}`, {
-                headers: {
-                    'Authorization': `Bearer ${this.token}`
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Fehler beim Laden der Bewegungen');
+        // Füge nur nicht-leere Filter hinzu
+        Object.entries(this.filters).forEach(([key, value]) => {
+            if (value) {
+                queryParams.append(key, value);
             }
+        });
 
-            const data = await response.json();
-            if (!data.success) {
-                throw new Error(data.message || 'Fehler beim Laden der Bewegungen');
+        console.log('Lade Bewegungen mit Parametern:', {
+            page: this.pagination.currentPage,
+            limit: this.pagination.entriesPerPage,
+            filter: this.filters
+        });
+
+        const response = await fetch(`/api/inventory/movements?${queryParams}`, {
+            headers: {
+                'Authorization': `Bearer ${this.token}`,
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
             }
+        });
 
-            // Aktualisiere den State
-            this.movements = data.movements;
-            
-            // Aktualisiere die Paginierung
-            const totalPages = Math.ceil(data.pagination.totalRows / data.pagination.limit);
-            this.pagination = {
-                currentPage: parseInt(data.pagination.page),
-                entriesPerPage: parseInt(data.pagination.limit),
-                totalRows: parseInt(data.pagination.totalRows),
-                totalPages: totalPages
-            };
+        if (!response.ok) {
+            throw new Error('Fehler beim Laden der Bewegungen');
+        }
 
-            // Speichere Ergebnis im Cache
+        const data = await response.json();
+        if (!data.success) {
+            throw new Error(data.message || 'Fehler beim Laden der Bewegungen');
+        }
+
+        // Aktualisiere den State
+        this.movements = data.movements;
+        
+        // Aktualisiere die Paginierung
+        const totalPages = Math.ceil(data.pagination.totalRows / data.pagination.limit);
+        this.pagination = {
+            currentPage: parseInt(data.pagination.page),
+            entriesPerPage: parseInt(data.pagination.limit),
+            totalRows: parseInt(data.pagination.totalRows),
+            totalPages: totalPages
+        };
+
+        // Speichere Ergebnis im Cache wenn nicht erzwungenes Neuladen
+        if (!this._forceReload) {
+            const cacheKey = this._generateCacheKey();
             this.cache.results.set(cacheKey, {
                 timestamp: Date.now(),
                 data: {
@@ -199,20 +250,17 @@ class InventoryState {
                     pagination: this.pagination
                 }
             });
-            
-            console.log('Bewegungen geladen:', {
-                anzahlBewegungen: this.movements.length,
-                pagination: this.pagination,
-                filter: this.filters,
-                totalPages: totalPages
-            });
-
-            eventBus.emit('movementsLoaded', this.movements);
-            return this.movements;
-        } catch (error) {
-            ErrorHandler.handle(error, 'Fehler beim Laden der Bewegungen');
-            throw error;
         }
+        
+        console.log('Bewegungen geladen:', {
+            anzahlBewegungen: this.movements.length,
+            pagination: this.pagination,
+            filter: this.filters,
+            totalPages: totalPages
+        });
+
+        eventBus.emit('movementsLoaded', this.movements);
+        return this.movements;
     }
 
     setCurrentView(view) {
@@ -231,12 +279,40 @@ class InventoryState {
         return await this.loadMovements();
     }
 
+    /**
+     * Gibt den Bewegungstyp für eine bestimmte ID zurück
+     * @param {string} typeId - Die ID des Bewegungstyps
+     * @returns {Object|null} Der gefundene Bewegungstyp oder null
+     */
     getMovementType(typeId) {
-        return this.references.types.find(type => type.id === typeId);
+        console.log('Suche Bewegungstyp:', {
+            typeId,
+            availableTypes: this.references?.types,
+            hasReferences: !!this.references
+        });
+        
+        if (!this.references?.types) {
+            console.error('Keine Bewegungstypen in den Referenzdaten gefunden');
+            return null;
+        }
+        
+        const type = this.references.types.find(type => type.id === typeId);
+        console.log('Gefundener Bewegungstyp:', type);
+        return type;
     }
 
+    /**
+     * Prüft ob ein Bewegungstyp eine Doppelbuchung erfordert
+     * @param {string} typeId - Die ID des Bewegungstyps
+     * @returns {boolean} True wenn Doppelbuchung erforderlich
+     */
     requiresDoubleBooking(typeId) {
         const type = this.getMovementType(typeId);
+        console.log('Prüfe Doppelbuchung:', {
+            typeId,
+            type,
+            numberOfBookings: type?.numberOfBookings
+        });
         return type?.numberOfBookings === 2;
     }
 }

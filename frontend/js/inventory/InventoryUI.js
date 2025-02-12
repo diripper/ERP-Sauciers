@@ -317,10 +317,53 @@ class InventoryUI {
      * @private
      */
     async _handleSuccessfulSubmission() {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        const loadMovementsPromise = this.state.loadMovements();
-        this.showView('inventoryMovementsView');
-        await loadMovementsPromise;
+        try {
+            console.log('Starte Verarbeitung der erfolgreichen Buchung...');
+            
+            // Warte erst 3 Sekunden, damit die Daten im Backend/Google Sheet gespeichert werden können
+            console.log('Warte 3 Sekunden auf Speicherung im Google Sheet...');
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            // Setze die Seite auf 1 zurück, da neue Einträge am Anfang erscheinen
+            this.state.pagination.currentPage = 1;
+            
+            // Invalidiere den Cache und erzwinge Neuladen
+            console.log('Invalidiere Caches und erzwinge Neuladen...');
+            this.state._invalidateCache();
+            this.service._invalidateAllCaches();
+            
+            // Setze alle Filter zurück
+            Object.keys(this.state.filters).forEach(key => {
+                this.state.filters[key] = '';
+                if (this.elements.filters[key]) {
+                    this.elements.filters[key].value = '';
+                }
+            });
+            
+            // Wechsle zur Bewegungsansicht
+            console.log('Wechsle zur Bewegungsübersicht...');
+            await this.showView('inventoryMovementsView');
+            
+            // Warte noch 1 Sekunde vor dem Neuladen der Daten
+            console.log('Warte 1 Sekunde vor dem Neuladen der Daten...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Erzwinge das Neuladen der Daten vom Server
+            console.log('Erzwinge Neuladen der Bewegungen...');
+            this.state._forceReload = true;  // Setze explizit auf true
+            await this.state.loadMovements();
+            
+            // Aktualisiere die UI-Komponenten
+            console.log('Aktualisiere UI-Komponenten...');
+            this.updateMovementsTable();
+            this.updatePagination();
+            this._updateFilterUI();
+            
+            console.log('Bewegungsübersicht wurde nach Buchung erfolgreich aktualisiert');
+        } catch (error) {
+            console.error('Fehler beim Aktualisieren der Bewegungsübersicht:', error);
+            ErrorHandler.handle(error);
+        }
     }
 
     /**
@@ -372,6 +415,8 @@ class InventoryUI {
                     break;
                     
                 case 'inventoryMovementsView':
+                    // Setze explizit _forceReload auf true vor dem Laden
+                    this.state._forceReload = true;
                     await Promise.all([
                         this.state.loadMovements(),
                         this._updateFilterOptions()
@@ -507,35 +552,41 @@ class InventoryUI {
      */
     handleMovementTypeChange() {
         try {
-            console.log('Bewegungstyp geändert');
-            
             const typeId = this.elements.form.type?.value;
+            console.log('Bewegungstyp geändert zu:', typeId);
+            
             if (!typeId) {
                 console.log('Kein Bewegungstyp ausgewählt');
+                this.elements.form.targetLocationGroup.style.display = 'none';
                 return;
             }
 
-            console.log('Prüfe Doppelbuchung für Typ:', typeId);
-            const requiresDoubleBooking = this.state.requiresDoubleBooking(typeId);
-            console.log('Erfordert Doppelbuchung:', requiresDoubleBooking);
+            // Debug-Logging für State und Type
+            console.log('State:', this.state);
+            const type = this.state.getMovementType(typeId);
+            console.log('Gefundener Typ:', type);
+            console.log('numberOfBookings:', type?.numberOfBookings);
 
             const targetGroup = this.elements.form.targetLocationGroup;
             const targetSelect = this.elements.form.targetLocation;
 
             if (!targetGroup || !targetSelect) {
-                console.error('Ziel-Lagerort Elemente nicht gefunden');
+                console.error('Ziel-Lagerort Elemente nicht gefunden:', {
+                    targetGroup: !!targetGroup,
+                    targetSelect: !!targetSelect
+                });
                 return;
             }
 
-            if (requiresDoubleBooking) {
+            if (type && type.numberOfBookings === 2) {
+                console.log('Aktiviere Ziel-Lagerort für Doppelbuchung');
                 targetGroup.style.display = 'block';
                 targetSelect.required = true;
-                console.log('Ziel-Lagerort aktiviert');
             } else {
+                console.log('Deaktiviere Ziel-Lagerort');
                 targetGroup.style.display = 'none';
                 targetSelect.required = false;
                 targetSelect.value = '';
-                console.log('Ziel-Lagerort deaktiviert');
             }
         } catch (error) {
             console.error('Fehler bei Bewegungstyp-Änderung:', error);
@@ -788,14 +839,20 @@ class InventoryUI {
     }
 
     bindStateEvents() {
-        eventBus.on('stateInitialized', () => {
+        eventBus.on('referencesLoaded', (references) => {
+            console.log('Referenzdaten im UI aktualisiert:', references);
             this.updateFormSelects();
-            this.updateFilterSelects();
         });
 
-        eventBus.on('referencesLoaded', () => {
+        eventBus.on('stateInitialized', () => {
+            console.log('State wurde initialisiert, aktualisiere UI');
             this.updateFormSelects();
-            this.updateFilterSelects();
+        });
+
+        // Event-Listener für Typ-Änderungen
+        this.elements.form.type?.addEventListener('change', () => {
+            console.log('Typ-Änderung erkannt');
+            this.handleMovementTypeChange();
         });
 
         eventBus.on('movementsLoaded', (movements) => {

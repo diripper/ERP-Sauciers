@@ -41,7 +41,7 @@ class InventoryService {
             });
 
             // Berechtigungsprüfung
-            if (!this.currentUser?.permissions?.inventory?.write) {
+            if (!this.currentUser?.permissions?.inventory?.edit) {
                 throw new Error('Keine Berechtigung für diese Aktion');
             }
 
@@ -131,32 +131,59 @@ class InventoryService {
 
     async handleDoubleBooking(baseMovement) {
         try {
+            console.log('Verarbeite Doppelbuchung:', baseMovement);
+            
             // Erste Buchung (Ausgang)
-            const firstMovement = new Movement({
-                ...baseMovement,
-                transaktionsmenge: -Math.abs(baseMovement.transaktionsmenge)
-            });
+            const firstMovement = {
+                mitarbeiter_id: baseMovement.mitarbeiter_id,
+                lagerort_id: baseMovement.lagerort_id,
+                typ_id: baseMovement.typ_id,
+                artikel_id: baseMovement.artikel_id,
+                transaktionsmenge: -Math.abs(baseMovement.transaktionsmenge),
+                buchungstext: baseMovement.buchungstext
+            };
 
             // Zweite Buchung (Eingang im Ziellager)
-            const secondMovement = new Movement({
-                ...baseMovement,
-                transaktionsmenge: Math.abs(baseMovement.transaktionsmenge),
-                lagerort_id: document.getElementById('newTargetLocationId').value
-            });
-
-            // Parallele Ausführung der Buchungen
-            const [firstResult, secondResult] = await Promise.all([
-                this.postMovement(firstMovement.toJSON()),
-                this.postMovement(secondMovement.toJSON())
-            ]);
-
-            if (!firstResult.success || !secondResult.success) {
-                ErrorHandler.error('Fehler bei der Doppelbuchung - bitte prüfen Sie die Bestände');
-                return false;
+            const targetLocationId = document.getElementById('newTargetLocationId')?.value;
+            if (!targetLocationId) {
+                throw new Error('Kein Ziellagerort für Doppelbuchung ausgewählt');
             }
 
+            const secondMovement = {
+                mitarbeiter_id: baseMovement.mitarbeiter_id,
+                lagerort_id: targetLocationId, // Verwende den Ziellagerort als lagerort_id
+                typ_id: baseMovement.typ_id,
+                artikel_id: baseMovement.artikel_id,
+                transaktionsmenge: Math.abs(baseMovement.transaktionsmenge),
+                buchungstext: baseMovement.buchungstext
+            };
+
+            console.log('Sende Buchungen:', {
+                erste: firstMovement,
+                zweite: secondMovement
+            });
+
+            // Sende beide Buchungen nacheinander
+            const firstResult = await this.postMovement(firstMovement);
+            if (!firstResult.success) {
+                throw new Error('Fehler bei der ersten Buchung');
+            }
+
+            const secondResult = await this.postMovement(secondMovement);
+            if (!secondResult.success) {
+                throw new Error('Fehler bei der zweiten Buchung');
+            }
+
+            console.log('Doppelbuchung erfolgreich durchgeführt');
+            
+            // Invalidiere alle Caches und erzwinge Neuladen
+            this._invalidateAllCaches();
+            this.state._invalidateCache();
+            this.state._forceReload = true;
+            
             return true;
         } catch (error) {
+            console.error('Fehler bei der Doppelbuchung:', error);
             ErrorHandler.handle(error, 'Fehler bei der Doppelbuchung');
             return false;
         }

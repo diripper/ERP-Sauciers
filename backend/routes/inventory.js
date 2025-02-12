@@ -301,51 +301,45 @@ router.get('/movements', checkPermission('inventory', 'view'), async (req, res) 
 // Referenzdaten abrufen
 router.get('/references', checkPermission('inventory', 'view'), async (req, res) => {
     try {
-        console.log('Starte Laden der Referenzdaten...');
+        console.log('Lade Referenzdaten...');
         const doc = await getInventoryDoc();
         
-        // Debug: Zeige verfügbare Sheets
-        console.log('Google Sheet geladen:', doc.title);
-        console.log('Gefundene Sheets:', {
-            lagerort: doc.sheetsByTitle['Lagerort']?.title,
-            transaktionstypen: doc.sheetsByTitle['Transaktionstypen']?.title,
-            artikel: doc.sheetsByTitle['Artikel']?.title
-        });
+        // Lade alle Referenzdaten parallel
+        const [locationsRows, typesRows, articlesRows] = await Promise.all([
+            doc.sheetsByTitle['Lagerort'].getRows(),
+            doc.sheetsByTitle['Transaktionstypen'].getRows(),
+            doc.sheetsByTitle['Artikel'].getRows()
+        ]);
 
-        const locationSheet = doc.sheetsByTitle['Lagerort'];
-        const typeSheet = doc.sheetsByTitle['Transaktionstypen'];
-        const articleSheet = doc.sheetsByTitle['Artikel'];
-        
-        const locationRows = await locationSheet.getRows();
-        const typeRows = await typeSheet.getRows();
-        const articleRows = await articleSheet.getRows();
-
-        console.log('Anzahl geladener Zeilen:', {
-            locations: locationRows.length,
-            types: typeRows.length,
-            articles: articleRows.length
-        });
-
+        // Transformiere die Daten
         const references = {
-            locations: locationRows.map(row => ({
+            locations: locationsRows.map(row => ({
                 id: row._rawData[0],
                 name: row._rawData[1]
             })),
-            types: typeRows.map(row => ({
+            types: typesRows.map(row => ({
                 id: row._rawData[0],
                 name: row._rawData[1],
                 numberOfBookings: parseInt(row._rawData[2]) || 1
             })),
-            articles: articleRows.map(row => ({
+            articles: articlesRows.map(row => ({
                 id: row._rawData[0],
                 name: row._rawData[1]
             }))
         };
 
-        console.log('Referenzdaten:', references);
+        console.log('Referenzdaten geladen:', {
+            locations: references.locations.length,
+            types: references.types.map(t => ({
+                id: t.id,
+                name: t.name,
+                numberOfBookings: t.numberOfBookings
+            })),
+            articles: references.articles.length
+        });
 
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             references: references
         });
     } catch (error) {
