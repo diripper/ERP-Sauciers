@@ -9,7 +9,6 @@ class InventoryState {
 
         // Bewegungsdaten
         this.movements = [];
-        this.filteredMovements = [];
 
         // Pagination
         this.pagination = {
@@ -31,6 +30,13 @@ class InventoryState {
         // View-Status
         this.currentView = null;
         
+        // Cache-System für Filterergebnisse
+        this.cache = {
+            results: new Map(),
+            timeout: 5 * 60 * 1000, // 5 Minuten Cache-Dauer
+            lastCleanup: Date.now()
+        };
+
         // Initialisierung
         this.initialize();
     }
@@ -75,6 +81,44 @@ class InventoryState {
         }
     }
 
+    /**
+     * Generiert einen Cache-Schlüssel aus den aktuellen Filterparametern
+     * @private
+     */
+    _generateCacheKey() {
+        return JSON.stringify({
+            filters: this.filters,
+            page: this.pagination.currentPage,
+            limit: this.pagination.entriesPerPage
+        });
+    }
+
+    /**
+     * Prüft ob ein Cache-Eintrag gültig ist
+     * @private
+     */
+    _isCacheValid(cacheEntry) {
+        if (!cacheEntry) return false;
+        return (Date.now() - cacheEntry.timestamp) < this.cache.timeout;
+    }
+
+    /**
+     * Bereinigt alte Cache-Einträge
+     * @private
+     */
+    _cleanupCache() {
+        const now = Date.now();
+        // Cleanup nur alle 5 Minuten durchführen
+        if (now - this.cache.lastCleanup < 5 * 60 * 1000) return;
+
+        for (const [key, entry] of this.cache.results.entries()) {
+            if (!this._isCacheValid(entry)) {
+                this.cache.results.delete(key);
+            }
+        }
+        this.cache.lastCleanup = now;
+    }
+
     async loadMovements() {
         try {
             if (!this.token) {
@@ -84,15 +128,40 @@ class InventoryState {
                 }
             }
 
+            // Cache-Schlüssel generieren
+            const cacheKey = this._generateCacheKey();
+            
+            // Prüfe Cache
+            const cachedResult = this.cache.results.get(cacheKey);
+            if (this._isCacheValid(cachedResult)) {
+                console.log('Verwende Cache-Daten für:', this.filters);
+                this.movements = cachedResult.data.movements;
+                this.pagination = cachedResult.data.pagination;
+                eventBus.emit('movementsLoaded', this.movements);
+                return this.movements;
+            }
+
+            // Cache-Bereinigung
+            this._cleanupCache();
+
+            // Erstelle Query-Parameter für die Anfrage
             const queryParams = new URLSearchParams({
                 page: this.pagination.currentPage,
                 limit: this.pagination.entriesPerPage,
                 employeeId: JSON.parse(sessionStorage.getItem('currentUser'))?.id
             });
 
+            // Füge nur nicht-leere Filter hinzu
+            Object.entries(this.filters).forEach(([key, value]) => {
+                if (value) {
+                    queryParams.append(key, value);
+                }
+            });
+
             console.log('Lade Bewegungen mit Parametern:', {
                 page: this.pagination.currentPage,
-                limit: this.pagination.entriesPerPage
+                limit: this.pagination.entriesPerPage,
+                filter: this.filters
             });
 
             const response = await fetch(`/api/inventory/movements?${queryParams}`, {
@@ -110,22 +179,35 @@ class InventoryState {
                 throw new Error(data.message || 'Fehler beim Laden der Bewegungen');
             }
 
+            // Aktualisiere den State
             this.movements = data.movements;
+            
+            // Aktualisiere die Paginierung
+            const totalPages = Math.ceil(data.pagination.totalRows / data.pagination.limit);
             this.pagination = {
-                ...this.pagination,
-                currentPage: data.pagination.page,
-                entriesPerPage: data.pagination.limit,
-                totalRows: data.pagination.totalRows,
-                totalPages: data.pagination.totalPages
+                currentPage: parseInt(data.pagination.page),
+                entriesPerPage: parseInt(data.pagination.limit),
+                totalRows: parseInt(data.pagination.totalRows),
+                totalPages: totalPages
             };
+
+            // Speichere Ergebnis im Cache
+            this.cache.results.set(cacheKey, {
+                timestamp: Date.now(),
+                data: {
+                    movements: this.movements,
+                    pagination: this.pagination
+                }
+            });
             
             console.log('Bewegungen geladen:', {
                 anzahlBewegungen: this.movements.length,
-                pagination: this.pagination
+                pagination: this.pagination,
+                filter: this.filters,
+                totalPages: totalPages
             });
 
-            this.applyFilters();
-            eventBus.emit('movementsLoaded', this.filteredMovements);
+            eventBus.emit('movementsLoaded', this.movements);
             return this.movements;
         } catch (error) {
             ErrorHandler.handle(error, 'Fehler beim Laden der Bewegungen');
@@ -138,73 +220,15 @@ class InventoryState {
         eventBus.emit('viewChanged', view);
     }
 
-    updatePagination(newPage) {
+    async updatePagination(newPage) {
         this.pagination.currentPage = newPage;
-        eventBus.emit('paginationChanged', this.pagination);
-        return this.loadMovements();
+        return await this.loadMovements();
     }
 
-    updateEntriesPerPage(entries) {
+    async updateEntriesPerPage(entries) {
         this.pagination.entriesPerPage = parseInt(entries);
         this.pagination.currentPage = 1;
-        eventBus.emit('paginationChanged', this.pagination);
-        return this.loadMovements();
-    }
-
-    updateFilters(newFilters) {
-        this.filters = { ...this.filters, ...newFilters };
-        this.pagination.currentPage = 1;
-        this.applyFilters();
-        eventBus.emit('filtersUpdated', this.filters);
-    }
-
-    resetFilters() {
-        this.filters = {
-            location: '',
-            type: '',
-            article: '',
-            dateFrom: '',
-            dateTo: ''
-        };
-        this.pagination.currentPage = 1;
-        this.applyFilters();
-        eventBus.emit('filtersReset');
-    }
-
-    applyFilters() {
-        this.filteredMovements = this.movements.filter(movement => {
-            const locationMatch = !this.filters.location || 
-                                movement.lagerort_id === this.filters.location;
-            
-            const typeMatch = !this.filters.type || 
-                            movement.typ_id === this.filters.type;
-            
-            const articleMatch = !this.filters.article || 
-                               movement.artikel_id === this.filters.article;
-            
-            let dateMatch = true;
-            if (this.filters.dateFrom || this.filters.dateTo) {
-                const [day, month, year] = movement.datum.split('.');
-                const movementDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-                movementDate.setHours(0, 0, 0, 0);
-
-                if (this.filters.dateFrom) {
-                    const fromDate = new Date(this.filters.dateFrom);
-                    fromDate.setHours(0, 0, 0, 0);
-                    dateMatch = dateMatch && movementDate >= fromDate;
-                }
-
-                if (this.filters.dateTo) {
-                    const toDate = new Date(this.filters.dateTo);
-                    toDate.setHours(23, 59, 59, 999);
-                    dateMatch = dateMatch && movementDate <= toDate;
-                }
-            }
-
-            return locationMatch && typeMatch && articleMatch && dateMatch;
-        });
-
-        eventBus.emit('movementsFiltered', this.filteredMovements);
+        return await this.loadMovements();
     }
 
     getMovementType(typeId) {

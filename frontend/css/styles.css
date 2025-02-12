@@ -598,4 +598,89 @@ input[type="checkbox"] {
 table td, table th {
     padding: 12px;
     white-space: nowrap;
+}
+
+/* Filter-Optimierungen */
+.filter-controls {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.filter-controls.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.filter-controls.loading::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 30px;
+    height: 30px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    z-index: 1;
+}
+
+.filter-summary {
+    margin: 10px 0;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.filter-tag {
+    display: inline-flex;
+    align-items: center;
+    background: #e9ecef;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.filter-tag .remove-filter {
+    margin-left: 6px;
+    cursor: pointer;
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.filter-tag .remove-filter:hover {
+    color: #c82333;
+}
+
+select.active-filter {
+    border-color: #3498db;
+    background-color: #f8f9fa;
+}
+
+.filter-controls select:disabled {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.no-filters {
+    color: #6c757d;
+    font-style: italic;
+    padding: 5px 0;
 } 

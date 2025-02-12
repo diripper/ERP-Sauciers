@@ -117,25 +117,23 @@
 
                     <div id="inventoryMovementsView" class="inventory-view hidden">
                         <h2>Bewegungen</h2>
-                        <div class="filter-container">
+                        <div class="filter-controls">
                             <select id="locationFilter">
-                                <option value="">Alle Lagerorte...</option>
+                                <option value="">Lagerort wählen...</option>
                             </select>
                             <select id="typeFilter">
-                                <option value="">Alle Bewegungstypen...</option>
+                                <option value="">Bewegungstyp wählen...</option>
                             </select>
                             <select id="articleFilter">
-                                <option value="">Alle Artikel...</option>
+                                <option value="">Artikel wählen...</option>
                             </select>
+                            <input type="date" id="dateFromFilter">
+                            <input type="date" id="dateToFilter">
+                            <button id="applyFilters" class="btn btn-primary">Filter anwenden</button>
+                            <button id="resetFilters" class="btn btn-secondary">Filter zurücksetzen</button>
                         </div>
-                        <div class="filter-group">
-                            <label for="dateFromFilter">Datum von:</label>
-                            <input type="date" id="dateFromFilter" class="filter-input">
-                            
-                            <label for="dateToFilter">bis:</label>
-                            <input type="date" id="dateToFilter" class="filter-input">
-                            <button id="applyDateFilter" class="filter-button">Anwenden</button>
-                            <button id="resetFilters" class="filter-button filter-button-reset">Alle Filter zurücksetzen</button>
+                        <div class="filter-summary">
+                            <!-- Hier werden die aktiven Filter angezeigt -->
                         </div>
                         <div class="entries-filter">
                             <label for="entriesPerPage">Einträge pro Seite:</label>

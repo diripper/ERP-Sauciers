@@ -54,7 +54,7 @@ class InventoryUI {
             article: document.getElementById('articleFilter'),
             dateFrom: document.getElementById('dateFromFilter'),
             dateTo: document.getElementById('dateToFilter'),
-            apply: document.getElementById('applyDateFilter'),
+            apply: document.getElementById('applyFilters'),
             reset: document.getElementById('resetFilters'),
             entriesPerPage: document.getElementById('entriesPerPage')
         };
@@ -103,32 +103,95 @@ class InventoryUI {
             });
         });
 
-        // Paginierungs-Events
-        if (this.elements.navigation.prevPage) {
-            console.log('Registriere prevPage Event');
-            this.elements.navigation.prevPage.addEventListener('click', () => this.handlePageNavigation(-1));
-        }
-        
-        if (this.elements.navigation.nextPage) {
-            console.log('Registriere nextPage Event');
-            this.elements.navigation.nextPage.addEventListener('click', () => this.handlePageNavigation(1));
-        }
+        // Filter Events
+        const filterElements = {
+            location: this.elements.filters.location,
+            type: this.elements.filters.type,
+            article: this.elements.filters.article,
+            dateFrom: this.elements.filters.dateFrom,
+            dateTo: this.elements.filters.dateTo
+        };
 
-        // Einträge pro Seite Event
-        if (this.elements.filters.entriesPerPage) {
-            console.log('Registriere entriesPerPage Event');
-            this.elements.filters.entriesPerPage.addEventListener('change', (e) => this.handleEntriesPerPageChange(e));
-        }
-
-        // Filter Events mit Debouncing
-        Object.values(this.elements.filters).forEach(filter => {
-            if (filter?.tagName === 'SELECT' || filter?.type === 'date') {
-                filter.addEventListener('change', () => this.debouncedFilterChange());
+        // Event-Listener für Filter-Änderungen - nur Werte speichern
+        Object.entries(filterElements).forEach(([key, element]) => {
+            if (element) {
+                element.addEventListener('change', (e) => {
+                    e.preventDefault(); // Verhindere Standard-Event
+                    const value = element.value;
+                    // Speichere nur den Wert, ohne Neuladen oder Events
+                    this.state.filters[key] = value;
+                });
             }
         });
 
-        // Optimierte Form Events
-        this._initializeFormEvents();
+        // Filter anwenden Button
+        if (this.elements.filters.apply) {
+            this.elements.filters.apply.addEventListener('click', async (e) => {
+                e.preventDefault();
+                try {
+                    this._setFilterLoading(true);
+                    console.log('Filter werden angewendet:', this.state.filters);
+                    this.state.pagination.currentPage = 1;
+                    await this.state.loadMovements();
+                    this._updateFilterUI();
+                } catch (error) {
+                    ErrorHandler.handle(error, 'Fehler beim Anwenden der Filter');
+                } finally {
+                    this._setFilterLoading(false);
+                }
+            });
+        }
+
+        // Filter zurücksetzen Button
+        if (this.elements.filters.reset) {
+            this.elements.filters.reset.addEventListener('click', async (e) => {
+                e.preventDefault();
+                try {
+                    this._setFilterLoading(true);
+                    console.log('Filter werden zurückgesetzt');
+                    Object.values(this.elements.filters).forEach(element => {
+                        if (element && element.tagName !== 'BUTTON') {
+                            element.value = '';
+                        }
+                    });
+                    
+                    Object.keys(this.state.filters).forEach(key => {
+                        this.state.filters[key] = '';
+                    });
+                    
+                    this.state.pagination.currentPage = 1;
+                    await this.state.loadMovements();
+                    this._updateFilterUI();
+                } catch (error) {
+                    ErrorHandler.handle(error, 'Fehler beim Zurücksetzen der Filter');
+                } finally {
+                    this._setFilterLoading(false);
+                }
+            });
+        }
+
+        // Paginierungs-Events
+        if (this.elements.navigation.prevPage) {
+            this.elements.navigation.prevPage.addEventListener('click', (e) => {
+                e.preventDefault(); // Verhindere Standard-Event
+                this.handlePageNavigation(-1);
+            });
+        }
+        
+        if (this.elements.navigation.nextPage) {
+            this.elements.navigation.nextPage.addEventListener('click', (e) => {
+                e.preventDefault(); // Verhindere Standard-Event
+                this.handlePageNavigation(1);
+            });
+        }
+
+        // Einträge pro Seite
+        if (this.elements.filters.entriesPerPage) {
+            this.elements.filters.entriesPerPage.addEventListener('change', (e) => {
+                e.preventDefault(); // Verhindere Standard-Event
+                this.handleEntriesPerPageChange(e);
+            });
+        }
     }
 
     /**
@@ -258,46 +321,6 @@ class InventoryUI {
         const loadMovementsPromise = this.state.loadMovements();
         this.showView('inventoryMovementsView');
         await loadMovementsPromise;
-    }
-
-    /**
-     * Implementiert Debouncing für Filter-Änderungen
-     * @private
-     */
-    debouncedFilterChange() {
-        if (this.filterDebounceTimeout) {
-            clearTimeout(this.filterDebounceTimeout);
-        }
-        
-        this.filterDebounceTimeout = setTimeout(() => {
-            this.handleFilterChange();
-        }, this.FILTER_DEBOUNCE_DELAY);
-    }
-
-    bindStateEvents() {
-        eventBus.on('stateInitialized', () => {
-            this.updateFormSelects();
-            this.updateFilterSelects();
-        });
-
-        eventBus.on('referencesLoaded', () => {
-            this.updateFormSelects();
-            this.updateFilterSelects();
-        });
-
-        eventBus.on('movementsLoaded', () => {
-            this.updateMovementsTable();
-            this.updatePagination();
-        });
-
-        eventBus.on('movementCreated', () => {
-            this.showView('inventoryMovementsView');
-            this.state.loadMovements();
-        });
-
-        eventBus.on('filtersUpdated', () => {
-            this.updateMovementsTable();
-        });
     }
 
     /**
@@ -520,34 +543,11 @@ class InventoryUI {
         }
     }
 
-    handleFilterChange() {
-        const newFilters = {
-            location: this.elements.filters.location.value,
-            type: this.elements.filters.type.value,
-            article: this.elements.filters.article.value,
-            dateFrom: this.elements.filters.dateFrom.value,
-            dateTo: this.elements.filters.dateTo.value
-        };
-        
-        this.state.updateFilters(newFilters);
-    }
-
-    resetFilters() {
-        // Reset Filter-Felder
-        Object.values(this.elements.filters).forEach(filter => {
-            if (filter?.tagName === 'SELECT' || filter?.type === 'date') {
-                filter.value = '';
-            }
-        });
-        
-        this.state.resetFilters();
-    }
-
     /**
      * Behandelt die Navigation zwischen den Seiten
      * @param {number} direction - Richtung der Navigation (-1 für zurück, 1 für vor)
      */
-    handlePageNavigation(direction) {
+    async handlePageNavigation(direction) {
         console.log('Seitennavigation:', {
             aktuelle_seite: this.state.pagination.currentPage,
             richtung: direction,
@@ -562,15 +562,19 @@ class InventoryUI {
             return;
         }
         
-        // Verwende die Server-Paginierung
-        this.state.updatePagination(newPage);
+        try {
+            // Verwende die Server-Paginierung
+            await this.state.updatePagination(newPage);
+        } catch (error) {
+            ErrorHandler.handle(error, 'Fehler bei der Seitennavigation');
+        }
     }
 
     /**
      * Behandelt Änderungen der Einträge pro Seite
      * @param {Event} e - Das Change-Event
      */
-    handleEntriesPerPageChange(e) {
+    async handleEntriesPerPageChange(e) {
         console.log('Einträge pro Seite ändern:', {
             alter_wert: this.state.pagination.entriesPerPage,
             neuer_wert: e.target.value
@@ -582,50 +586,92 @@ class InventoryUI {
             return;
         }
         
-        // Verwende die Server-Paginierung
-        this.state.updateEntriesPerPage(newValue);
+        try {
+            // Verwende die Server-Paginierung
+            await this.state.updateEntriesPerPage(newValue);
+        } catch (error) {
+            ErrorHandler.handle(error, 'Fehler beim Ändern der Einträge pro Seite');
+        }
     }
 
     /**
-     * Aktualisiert die Bewegungstabelle mit optimierter Rendering-Performance
+     * Aktualisiert die Bewegungstabelle mit optimierter Performance
      */
     updateMovementsTable() {
-        if (!this.elements.tables.movementsBody) return;
+        if (!this.elements.tables.movementsBody || !this.state.movements) return;
         
+        console.log('Aktualisiere Bewegungstabelle:', {
+            anzahlBewegungen: this.state.movements.length,
+            filter: this.state.filters
+        });
+
+        // Erstelle DocumentFragment für bessere Performance
         const fragment = document.createDocumentFragment();
         
-        this.state.filteredMovements.forEach(movement => {
-            let row = this._tableRowCache.get(movement);
-            
-            if (!row) {
-                row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${movement.datum}</td>
-                    <td>${movement.mitarbeiter}</td>
-                    <td>${movement.lagerort_id}</td>
-                    <td>${movement.lagerort}</td>
-                    <td>${movement.typ_id}</td>
-                    <td>${movement.trans_typ}</td>
-                    <td>${movement.artikel_id}</td>
-                    <td>${movement.artikel}</td>
-                    <td>${movement.transaktionsmenge}</td>
-                    <td>${movement.bestand_lo}</td>
-                    <td>${movement.buchungstext}</td>
-                `;
-                this._tableRowCache.set(movement, row.cloneNode(true));
-            } else {
-                row = row.cloneNode(true);
+        // Wiederverwendbare Funktion für Zellenerstellung
+        const createCell = (content) => {
+            const cell = document.createElement('td');
+            cell.textContent = content;
+            return cell;
+        };
+
+        // Erstelle einen Pool von wiederverwendbaren Zeilen
+        if (!this._rowPool) {
+            this._rowPool = [];
+        }
+
+        // Berechne die benötigte Anzahl neuer Zeilen
+        const existingRows = this._rowPool.length;
+        const neededRows = this.state.movements.length;
+        
+        // Erstelle neue Zeilen wenn nötig
+        if (existingRows < neededRows) {
+            for (let i = existingRows; i < neededRows; i++) {
+                const row = document.createElement('tr');
+                for (let j = 0; j < 11; j++) { // 11 Spalten
+                    row.appendChild(document.createElement('td'));
+                }
+                this._rowPool.push(row);
             }
+        }
+
+        // Aktualisiere und füge die Zeilen hinzu
+        this.state.movements.forEach((movement, index) => {
+            const row = this._rowPool[index];
+            const cells = row.children;
+            
+            // Aktualisiere nur geänderte Zellen
+            this._updateCellIfChanged(cells[0], movement.datum);
+            this._updateCellIfChanged(cells[1], movement.mitarbeiter);
+            this._updateCellIfChanged(cells[2], movement.lagerort_id);
+            this._updateCellIfChanged(cells[3], movement.lagerort);
+            this._updateCellIfChanged(cells[4], movement.typ_id);
+            this._updateCellIfChanged(cells[5], movement.trans_typ);
+            this._updateCellIfChanged(cells[6], movement.artikel_id);
+            this._updateCellIfChanged(cells[7], movement.artikel);
+            this._updateCellIfChanged(cells[8], movement.transaktionsmenge);
+            this._updateCellIfChanged(cells[9], movement.bestand_lo);
+            this._updateCellIfChanged(cells[10], movement.buchungstext);
             
             fragment.appendChild(row);
         });
 
         // Batch-Update des DOM
-        this.elements.tables.movementsBody.innerHTML = '';
-        this.elements.tables.movementsBody.appendChild(fragment);
-        
-        // Aktualisiere die Paginierung
-        this.updatePagination();
+        requestAnimationFrame(() => {
+            this.elements.tables.movementsBody.innerHTML = '';
+            this.elements.tables.movementsBody.appendChild(fragment);
+        });
+    }
+
+    /**
+     * Aktualisiert eine Zelle nur wenn sich der Inhalt geändert hat
+     * @private
+     */
+    _updateCellIfChanged(cell, newContent) {
+        const currentContent = cell.textContent;
+        if (currentContent !== String(newContent)) {
+            cell.textContent = newContent;
+        }
     }
 
     /**
@@ -692,26 +738,180 @@ class InventoryUI {
         return `${formattedDate} ${formattedTime} (${movement.transaktionsmenge})`;
     }
 
+    /**
+     * Aktualisiert die Paginierung mit optimierter Performance
+     */
     updatePagination() {
         const { currentPage, totalPages } = this.state.pagination;
         
-        console.log('Aktualisiere Paginierung:', {
-            currentPage,
-            totalPages
+        // Batch-Update der Paginierung
+        requestAnimationFrame(() => {
+            if (this.elements.navigation.currentPage) {
+                this._updateTextContentIfChanged(
+                    this.elements.navigation.currentPage,
+                    currentPage
+                );
+            }
+            
+            if (this.elements.navigation.totalPages) {
+                this._updateTextContentIfChanged(
+                    this.elements.navigation.totalPages,
+                    totalPages
+                );
+            }
+            
+            if (this.elements.navigation.prevPage) {
+                const shouldBeDisabled = currentPage <= 1;
+                if (this.elements.navigation.prevPage.disabled !== shouldBeDisabled) {
+                    this.elements.navigation.prevPage.disabled = shouldBeDisabled;
+                }
+            }
+            
+            if (this.elements.navigation.nextPage) {
+                const shouldBeDisabled = currentPage >= totalPages;
+                if (this.elements.navigation.nextPage.disabled !== shouldBeDisabled) {
+                    this.elements.navigation.nextPage.disabled = shouldBeDisabled;
+                }
+            }
         });
+    }
+
+    /**
+     * Aktualisiert den Textinhalt eines Elements nur wenn nötig
+     * @private
+     */
+    _updateTextContentIfChanged(element, newContent) {
+        const currentContent = element.textContent;
+        if (currentContent !== String(newContent)) {
+            element.textContent = newContent;
+        }
+    }
+
+    bindStateEvents() {
+        eventBus.on('stateInitialized', () => {
+            this.updateFormSelects();
+            this.updateFilterSelects();
+        });
+
+        eventBus.on('referencesLoaded', () => {
+            this.updateFormSelects();
+            this.updateFilterSelects();
+        });
+
+        eventBus.on('movementsLoaded', (movements) => {
+            this.updateMovementsTable();
+            this.updatePagination();
+        });
+
+        eventBus.on('movementCreated', () => {
+            this.showView('inventoryMovementsView');
+            this.state.loadMovements();
+        });
+    }
+
+    /**
+     * Aktualisiert die Filter-UI
+     * @private
+     */
+    _updateFilterUI() {
+        // Aktualisiere die Filter-Zusammenfassung
+        const summary = document.querySelector('.filter-summary');
+        if (!summary) return;
+
+        // Lösche bisherige Filter-Tags
+        summary.innerHTML = '';
+
+        // Prüfe ob Filter aktiv sind
+        const activeFilters = Object.entries(this.state.filters).filter(([_, value]) => value);
+
+        if (activeFilters.length === 0) {
+            summary.innerHTML = '<div class="no-filters">Keine Filter aktiv</div>';
+            return;
+        }
+
+        // Erstelle Filter-Tags für aktive Filter
+        activeFilters.forEach(([key, value]) => {
+            const tag = document.createElement('div');
+            tag.className = 'filter-tag';
+            
+            // Bestimme den Anzeigetext basierend auf dem Filter-Typ
+            let displayText = '';
+            switch(key) {
+                case 'location':
+                    const location = this.state.references.locations.find(l => l.id === value);
+                    displayText = `Lagerort: ${location ? location.name : value}`;
+                    break;
+                case 'type':
+                    const type = this.state.references.types.find(t => t.id === value);
+                    displayText = `Typ: ${type ? type.name : value}`;
+                    break;
+                case 'article':
+                    const article = this.state.references.articles.find(a => a.id === value);
+                    displayText = `Artikel: ${article ? article.name : value}`;
+                    break;
+                case 'dateFrom':
+                    displayText = `Von: ${value}`;
+                    break;
+                case 'dateTo':
+                    displayText = `Bis: ${value}`;
+                    break;
+            }
+            
+            tag.innerHTML = `
+                ${displayText}
+                <span class="remove-filter" data-filter="${key}">×</span>
+            `;
+            
+            // Event-Listener für das Entfernen des Filters
+            const removeBtn = tag.querySelector('.remove-filter');
+            removeBtn.addEventListener('click', () => this._removeFilter(key));
+            
+            summary.appendChild(tag);
+        });
+
+        // Aktualisiere die visuellen Zustände der Filter-Selektionen
+        Object.entries(this.elements.filters).forEach(([key, element]) => {
+            if (element && element.tagName === 'SELECT') {
+                element.classList.toggle('active-filter', !!this.state.filters[key]);
+            }
+        });
+    }
+
+    /**
+     * Entfernt einen einzelnen Filter
+     * @private
+     */
+    async _removeFilter(filterKey) {
+        // Setze den Filter zurück
+        this.state.filters[filterKey] = '';
         
-        if (this.elements.navigation.currentPage) {
-            this.elements.navigation.currentPage.textContent = currentPage;
+        // Setze das entsprechende UI-Element zurück
+        if (this.elements.filters[filterKey]) {
+            this.elements.filters[filterKey].value = '';
         }
-        if (this.elements.navigation.totalPages) {
-            this.elements.navigation.totalPages.textContent = totalPages;
-        }
-        if (this.elements.navigation.prevPage) {
-            this.elements.navigation.prevPage.disabled = currentPage <= 1;
-        }
-        if (this.elements.navigation.nextPage) {
-            this.elements.navigation.nextPage.disabled = currentPage >= totalPages;
-        }
+        
+        // Aktualisiere die Anzeige
+        this.state.pagination.currentPage = 1;
+        await this.state.loadMovements();
+        this._updateFilterUI();
+    }
+
+    /**
+     * Setzt den Lade-Zustand der Filter
+     * @private
+     */
+    _setFilterLoading(isLoading) {
+        const filterControls = document.querySelector('.filter-controls');
+        if (!filterControls) return;
+
+        filterControls.classList.toggle('loading', isLoading);
+        
+        // Deaktiviere/Aktiviere alle Filter-Elemente
+        Object.values(this.elements.filters).forEach(element => {
+            if (element) {
+                element.disabled = isLoading;
+            }
+        });
     }
 }
 

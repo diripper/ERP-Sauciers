@@ -9,7 +9,6 @@ let selectedEntries = new Set();
 
 // Globale Variablen für die Bewegungsdaten
 let allMovements = [];
-let filteredMovements = [];
 let references = {
     locations: [],
     types: [],
@@ -236,7 +235,6 @@ window.addEventListener('load', () => {
         updateSessionTimer(); // Timer initial setzen
         // Clear Inventory-Daten beim erneuten Login
         allMovements = [];
-        filteredMovements = [];
         showLoggedInState();
     }
 });
@@ -251,7 +249,6 @@ function showLoggedInState() {
     
     // Reset der globalen Variablen
     allMovements = [];
-    filteredMovements = [];
     references = {
         locations: [],
         types: [],
@@ -346,7 +343,6 @@ function logout() {
 
     // Clear Inventory-Daten
     allMovements = [];
-    filteredMovements = [];
 }
 
 // Event-Listener für Logout-Button
@@ -394,7 +390,6 @@ document.getElementById('login').addEventListener('submit', async (e) => {
             updateSessionTimer();
             // Clear Inventory-Daten beim erneuten Login
             allMovements = [];
-            filteredMovements = [];
             showLoggedInState();
         } else {
             Modal.error('Login fehlgeschlagen: Falsche Mitarbeiter-ID oder falsches Passwort');
@@ -759,7 +754,7 @@ document.getElementById('showInventoryMovements').addEventListener('click', asyn
         console.log('Lade Warenwirtschaft-Bewegungen...');
         hideAllInventoryViews();
         document.getElementById('inventoryMovementsView').classList.remove('hidden');
-        await loadMovements(true);
+        await loadMovements();
         console.log('Bewegungen geladen');
     } catch (error) {
         console.error('Fehler beim Laden der Bewegungen:', error);
@@ -772,223 +767,91 @@ async function loadMovements() {
         // Lade zuerst die Referenzdaten neu
         await loadReferenceData();
         
-        const response = await fetch(`/api/inventory/movements?employeeId=${currentUser.id}&nocache=${Date.now()}`);
-        const data = await response.json();
-        
-        if (data.success) {
-            allMovements = data.movements;
-            // Reset Filter-Werte
-            document.getElementById('locationFilter').value = '';
-            document.getElementById('typeFilter').value = '';
-            document.getElementById('articleFilter').value = '';
-            document.getElementById('dateFromFilter').value = '';
-            document.getElementById('dateToFilter').value = '';
-            
-            applyFilters();
+        // Verwende den InventoryState für das Laden der Bewegungen
+        if (inventoryState) {
+            await inventoryState.loadMovements();
         }
     } catch (error) {
         console.error('Fehler beim Laden der Bewegungen:', error);
+        ErrorHandler.handle(error);
     }
 }
 
-// Funktion zum Laden der Filter-Optionen
+// Funktion zum Laden der Filter-Optionen aktualisieren
 function loadFilterOptions() {
     try {
         console.log('Lade Filter-Optionen...', references);
         const locationFilter = document.getElementById('locationFilter');
         const typeFilter = document.getElementById('typeFilter');
         const articleFilter = document.getElementById('articleFilter');
-        
-        // Lösche bestehende Optionen (außer der ersten)
+
+        if (!locationFilter || !typeFilter || !articleFilter) {
+            console.warn('Filter-Elemente nicht gefunden');
+            return;
+        }
+
         locationFilter.innerHTML = '<option value="">Alle Lagerorte...</option>';
         typeFilter.innerHTML = '<option value="">Alle Bewegungstypen...</option>';
         articleFilter.innerHTML = '<option value="">Alle Artikel...</option>';
-        
-        // Füge die Optionen aus den Referenzdaten hinzu
-        references.locations.forEach(loc => {
+
+        references.locations.forEach(location => {
             const option = document.createElement('option');
-            option.value = loc.id;
-            option.textContent = `${loc.id} - ${loc.name}`;
+            option.value = location.id;
+            option.textContent = `${location.id} - ${location.name}`;
             locationFilter.appendChild(option);
         });
-        
+
         references.types.forEach(type => {
             const option = document.createElement('option');
             option.value = type.id;
             option.textContent = `${type.id} - ${type.name}`;
             typeFilter.appendChild(option);
         });
-        
+
         references.articles.forEach(article => {
             const option = document.createElement('option');
             option.value = article.id;
             option.textContent = `${article.id} - ${article.name}`;
             articleFilter.appendChild(option);
         });
+
         console.log('Filter-Optionen geladen');
     } catch (error) {
         console.error('Fehler beim Laden der Filter-Optionen:', error);
     }
 }
 
-// Event-Listener für die Filter (ohne Datum)
-document.getElementById('locationFilter').addEventListener('change', applyFilters);
-document.getElementById('typeFilter').addEventListener('change', applyFilters);
-document.getElementById('articleFilter').addEventListener('change', applyFilters);
-
-// Event-Listener für Datums-Filter
-document.getElementById('dateFromFilter').addEventListener('change', function(e) {
-    // Wenn ein Von-Datum gewählt wurde, setze es auch als Bis-Datum
-    const dateToFilter = document.getElementById('dateToFilter');
-    if (e.target.value && !dateToFilter.value) {
-        dateToFilter.value = e.target.value;
-    }
-});
-
-// Event-Listener für den Anwenden-Button
-document.getElementById('applyDateFilter').addEventListener('click', function() {
-    const dateFromFilter = document.getElementById('dateFromFilter');
-    const dateToFilter = document.getElementById('dateToFilter');
-    
-    // Prüfe ob mindestens ein Datum ausgewählt wurde
-    if (!dateFromFilter.value && !dateToFilter.value) {
-        alert('Bitte wählen Sie mindestens ein Datum aus.');
-        return;
-    }
-    
-    // Wenn nur ein Bis-Datum gewählt wurde, setze das Von-Datum auf das gleiche Datum
-    if (!dateFromFilter.value && dateToFilter.value) {
-        dateFromFilter.value = dateToFilter.value;
-    }
-    
-    // Wende die Filter an
-    applyFilters();
-});
-
-// Event-Listener für den Reset-Button
-document.getElementById('resetFilters').addEventListener('click', function() {
-    // Setze alle Filter zurück
-    document.getElementById('locationFilter').value = '';
-    document.getElementById('typeFilter').value = '';
-    document.getElementById('articleFilter').value = '';
-    document.getElementById('dateFromFilter').value = '';
-    document.getElementById('dateToFilter').value = '';
-    
-    // Wende die Filter neu an
-    applyFilters();
-});
-
-// Funktion zum Anwenden der Filter aktualisieren
-function applyFilters() {
-    try {
-        console.log('Wende Filter an...', {
-            allMovements: allMovements?.length,
-            filteredMovements: filteredMovements?.length
-        });
-        
-        const locationValue = document.getElementById('locationFilter').value;
-        const typeValue = document.getElementById('typeFilter').value;
-        const articleValue = document.getElementById('articleFilter').value;
-        const dateFromValue = document.getElementById('dateFromFilter').value;
-        const dateToValue = document.getElementById('dateToFilter').value;
-        
-        console.log('Aktuelle Filterwerte:', { 
-            locationValue, 
-            typeValue, 
-            articleValue,
-            dateFromValue,
-            dateToValue 
-        });
-        
-        // Filtere die Daten
-        filteredMovements = allMovements.filter(movement => {
-            const locationMatch = !locationValue || movement.lagerort_id === locationValue;
-            const typeMatch = !typeValue || movement.typ_id === typeValue;
-            const articleMatch = !articleValue || movement.artikel_id === articleValue;
-            
-            // Datumsfilter
-            let dateMatch = true;
-            if (dateFromValue || dateToValue) {
-                // Konvertiere das Datum aus dem deutschen Format in ein Date-Objekt
-                const [day, month, year] = movement.datum.split('.');
-                // Erstelle ein neues Date-Objekt (Jahr, Monat-1, Tag)
-                const movementDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-                movementDate.setHours(0, 0, 0, 0);
-                
-                console.log('Vergleiche Daten:', {
-                    original: movement.datum,
-                    parsed: movementDate,
-                    fromDate: dateFromValue ? new Date(dateFromValue) : null,
-                    toDate: dateToValue ? new Date(dateToValue) : null
-                });
-                
-                if (dateFromValue) {
-                    const fromDate = new Date(dateFromValue);
-                    fromDate.setHours(0, 0, 0, 0);
-                    dateMatch = dateMatch && movementDate >= fromDate;
-                }
-                
-                if (dateToValue) {
-                    const toDate = new Date(dateToValue);
-                    toDate.setHours(23, 59, 59, 999);
-                    dateMatch = dateMatch && movementDate <= toDate;
-                }
-            }
-            
-            return locationMatch && typeMatch && articleMatch && dateMatch;
-        });
-        
-        console.log('Gefilterte Bewegungen:', filteredMovements.length);
-        
-        // Sortiere nach Datum (neueste zuerst)
-        filteredMovements.sort((a, b) => {
-            // Konvertiere deutsche Datumsformate mit Uhrzeit in Date-Objekte
-            const [dateA, timeA = "00:00"] = a.datum.split(' ');
-            const [dateB, timeB = "00:00"] = b.datum.split(' ');
-            
-            const [dayA, monthA, yearA] = dateA.split('.');
-            const [hoursA, minutesA] = timeA.split(':');
-            
-            const [dayB, monthB, yearB] = dateB.split('.');
-            const [hoursB, minutesB] = timeB.split(':');
-            
-            const dateObjA = new Date(yearA, monthA - 1, dayA, hoursA, minutesA);
-            const dateObjB = new Date(yearB, monthB - 1, dayB, hoursB, minutesB);
-            
-            return dateObjB - dateObjA; // Neueste zuerst
-        });
-        
-        // Aktualisiere die Tabelle
-        updateMovementsTable();
-        console.log('Filter angewendet, Tabelle aktualisiert');
-    } catch (error) {
-        console.error('Fehler beim Anwenden der Filter:', error);
-        console.error('Stack:', error.stack);
-    }
-}
-
-// Funktion zum Aktualisieren der Tabelle
+// Aktualisiere die Tabellen-Update-Funktion
 function updateMovementsTable() {
-    const tbody = document.querySelector('#movementsTable tbody');
-    tbody.innerHTML = '';
-    
-    filteredMovements.forEach(movement => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${formatDate(movement.datum)}</td>
-            <td>${movement.mitarbeiter}</td>
-            <td>${movement.lagerort_id}</td>
-            <td>${movement.lagerort}</td>
-            <td>${movement.typ_id}</td>
-            <td>${movement.trans_typ}</td>
-            <td>${movement.artikel_id}</td>
-            <td>${movement.artikel}</td>
-            <td>${movement.transaktionsmenge}</td>
-            <td>${movement.bestand_lo}</td>
-            <td>${movement.buchungstext}</td>
-        `;
-        tbody.appendChild(row);
-    });
+    try {
+        const tbody = document.querySelector('#movementsTable tbody');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+        
+        // Verwende die Daten direkt aus dem InventoryState
+        if (inventoryState && inventoryState.movements) {
+            inventoryState.movements.forEach(movement => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${movement.datum}</td>
+                    <td>${movement.mitarbeiter}</td>
+                    <td>${movement.lagerort_id}</td>
+                    <td>${movement.lagerort}</td>
+                    <td>${movement.typ_id}</td>
+                    <td>${movement.trans_typ}</td>
+                    <td>${movement.artikel_id}</td>
+                    <td>${movement.artikel}</td>
+                    <td>${movement.transaktionsmenge}</td>
+                    <td>${movement.bestand_lo}</td>
+                    <td>${movement.buchungstext}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    } catch (error) {
+        console.error('Fehler beim Aktualisieren der Tabelle:', error);
+    }
 }
 
 // Hilfsfunktion zum Ausblenden aller Inventory-Views
@@ -997,11 +860,6 @@ function hideAllInventoryViews() {
         view.classList.add('hidden');
     });
 }
-
-// Event-Listener für die Filter
-document.getElementById('locationFilter').addEventListener('change', applyFilters);
-document.getElementById('typeFilter').addEventListener('change', applyFilters);
-document.getElementById('articleFilter').addEventListener('change', applyFilters);
 
 // Event-Listener für "Bewegungen buchen" Button
 document.getElementById('showNewMovement').addEventListener('click', () => {
