@@ -1,0 +1,33 @@
+Ich möchte eine Erweiterung des Moduls "Warenwirtschaft" im Bereich "Bewegungen buchen" implementieren. Bitte basiere Deine Implementierung auf den bestehenden Logiken und API-Konfigurationen, die sich bereits im Einsatz bewährt haben.
+
+Hier sind die detaillierten Anforderungen für die Erweiterung:
+
+1. Im Google Sheet (ID "10w22PcqGyhDKTc3baY78AaWPQg5j72QDTUehEs6WjQk") gibt es im Tabellenblatt "Transaktionstypen" (gid=2036081770) die neue Spalte "Anzahl Buchungen". Diese gibt an, wie viele Buchungen pro Typ ID (=Bewegungstyp) im Tabellenblatt "Transaktionen" (gid=1110248090) durch die Betätigung des Buttons "buchen" angelegt werden sollen.
+   - Wert 1: Es bleibt alles in der bisherigen Logik.
+   - Wert 2: Es soll eine neue Logik greifen. 
+
+2. Anforderungen für den Wert 2 und die neue Logik:
+   - Zwei Datensätze sollen ins Google Sheet (sheet "Transaktionen") übergeben werden.
+     - Negative Mengenbuchung: In der im Feld "Lagerort" selektierten Lagerort ID wird eine negative Mengenbuchung in Höhe der Transaktionsmenge ausgelöst. Buchungslogik wie bereits implementiert, mit dem einzigen Unterschied des, dass das Vorzeichens der Transaktionsmenge negative sein muss.
+     - Positive Mengenbuchung: Eine positive Mengenbuchung in Höhe der Transaktionsmenge in eine andere Lagerort ID (=Ziel-Lagerort).
+   - Im Frontend: 
+     - Es soll ein neues Auswahlfeld "Ziel-Lagerort" unter dem Feld "Bewegungstyp" erscheinen, wenn "Anzahl Buchungen"=2 bei dem selektierten Bewegungstyp ist. Dieses Auswahlfeld ermöglicht die Auswahl des Ziel-Lagerorts. Die Konfiguration des Auswahlfelds "Ziel-Lagerort" ist identisch zu der bestehenden Konfiguration des Auswahlfelds "Lagerort".
+
+3. Detaillierte Schritt-für-Schritt Anweisungen:
+   - Nach der Selektion des Bewegungstyps im Formular "Neue Bewegung buchen" wird anhand des Wertes in "Anzahl Buchungen" festgelegt, ob die bisherige Logik weiter greift oder die neue Logik für Wert 2 angewendet wird.
+   - Bei Wert 2:
+     - Im Frontend: Das Feld "Ziel-Lagerort" soll dynamisch erscheinen, wenn "Anzahl Buchungen"=2 ist.
+     - Beide Buchungen (negativ/positiv) sollten dieselben Werte haben, nur mit:
+       - Unterschiedlichem Vorzeichen bei der Menge.
+       - Unterschiedlicher Lagerort ID.
+       - Gleichem Timestamp. Ein kleiner zeitlicher Versatz sollte vorhanden sein, um sicherzustellen, dass die Buchungen in zwei aufeinanderfolgende Datenzeilen geschrieben werden.
+
+4. Bitte nutze nach Möglichkeit die bisherigen Funktionen, Logiken und bestehende API-Konfigurationen zum Laden von Daten und zur Durchführung von Buchungen:
+   - Veränderungen im Code sollten nur dort vorgenommen werden, wo es wirklich notwendig ist, um die neuen Anforderungen zu erfüllen.
+   - Stelle sicher, dass die neuen Änderungen ausschließlich das Modul "Warenwirtschaft" betreffen und keine anderen Module wie "Zeiterfassung" beeinflussen.
+   - Zu ändernde Dateien: @inventory.js  @inventory.js @index.html 
+   - In Bezug auf das Laden der Werte für das Auswahlfeld "Bewegungstyp" muss die Funktion um das zusätzlich Laden der Werte der Spalte "Anzahl Menge" aus dem Tabellenblatt erweitert werden, damit diese Info genutzt werden kann für die oben beschriebene Anforderung.
+
+Gehe Schritt für Schritt vor und lass uns gemeinsam jede (Teil)Implementierung testen, bevor die nächste angegangen wird.
+
+Beginne zunächst mit der Implementierung im Frontend, also dem zusätzlichen Feld "Ziel-Lagerort" und der Prüfung, ob der selektierte Bewegungstyp die "Anzahl Buchungen" gleich 1 oder 2 hat. Da die Bewegungstypen bereits importiert und im Frontend gemappt werden (types), müsste diese Routine insofern angepasst werden, dass zusätzlich neben "Typ ID" (id) und "Transaktionstyp" (name) auch die Werte der neuen Spalte "Anzahl Buchungen" (NumberOfBookings) importiert werden, um die Prüfung vornehmen zu können.
