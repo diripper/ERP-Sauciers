@@ -8,6 +8,26 @@
 :root {
     /* Basis-Schriftgröße für Desktop */
     font-size: 16px;
+    
+    /* CI-Farben */
+    --color-gold: #d3af37;
+    --color-gold-transparent: #695515;
+    --color-light-gold: #f6efdb;
+    --color-black: #100b01;
+    
+    /* Dark Mode Farben */
+    --color-bg: #1a1a1a;
+    --color-bg-secondary: #2a2a2a;
+    --color-text: #e0e0e0;
+    --color-text-secondary: #b0b0b0;
+    --color-primary: var(--color-gold);
+    --color-secondary: var(--color-gold-transparent);
+    
+    /* Komponenten-Farben */
+    --color-border: #333333;
+    --color-hover: var(--color-gold-transparent);
+    --color-active: var(--color-gold);
+    --color-disabled: #444444;
 }
 
 /* Mobile Schriftgröße */
@@ -18,15 +38,19 @@
 }
 
 body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
     font-family: Arial, sans-serif;
     line-height: 1.6;
-    background-color: #f4f4f4;
 }
 
 .container {
     max-width: 800px;
     margin: 1rem auto;
     padding: 0.5rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
 }
 
 @media (max-width: 768px) {
@@ -42,10 +66,10 @@ body {
 
 /* Formular Styles */
 .form-container {
-    background: white;
+    background-color: var(--color-bg-secondary);
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid var(--color-border);
     max-width: 600px;
     margin: 0 auto;
 }
@@ -62,26 +86,39 @@ form {
     gap: 1rem;
 }
 
-input, select {
-    padding: 0.5rem;
-    border: 1px solid #ddd;
+input, select, textarea {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    padding: 8px;
     border-radius: 4px;
-    font-size: 1rem;
 }
 
-button {
-    padding: 0.5rem;
-    background: #007bff;
-    color: white;
+input:focus, select:focus, textarea:focus {
+    border-color: var(--color-gold);
+    outline: none;
+}
+
+button, .button {
+    background-color: var(--color-gold);
+    color: var(--color-black);
     border: none;
+    padding: 8px 16px;
     border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.2s ease;
-    font-size: 1rem;
+    transition: all 0.3s ease;
+    font-weight: bold;
 }
 
-button:hover {
-    background: #0056b3;
+button:hover, .button:hover {
+    background-color: var(--color-gold-transparent);
+    transform: translateY(-1px);
+}
+
+button:disabled, .button:disabled {
+    background-color: var(--color-disabled);
+    color: var(--color-text-secondary);
+    cursor: not-allowed;
 }
 
 /* Header und Navigation */
@@ -116,6 +153,7 @@ button:hover {
 
 #userInfo {
     font-weight: bold;
+    color: var(--color-gold);
 }
 
 /* Tabellen Styles */
@@ -123,19 +161,19 @@ button:hover {
     width: 100%;
     overflow-x: auto;
     margin-top: 20px;
-    background: white;
+    background-color: var(--color-bg-secondary);
     border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border: 1px solid var(--color-border);
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 600px; /* Minimale Breite für horizontales Scrollen */
+    min-width: 600px;
 }
 
 th, td {
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-border);
     padding: 12px;
     text-align: left;
     white-space: nowrap;
@@ -149,14 +187,15 @@ th, td {
 }
 
 th {
-    background-color: #f4f4f4;
+    background-color: var(--color-bg-secondary);
+    color: var(--color-gold);
     position: sticky;
     top: 0;
     z-index: 1;
 }
 
 tr:nth-child(even) {
-    background-color: #f9f9f9;
+    background-color: var(--color-bg);
 }
 
 /* Checkbox Styles */
@@ -206,9 +245,10 @@ input[type="checkbox"] {
 .summary {
     margin-top: 1rem;
     padding: 0.75rem;
-    background-color: #f8f9fa;
+    background-color: var(--color-bg-secondary);
     border-radius: 4px;
     text-align: right;
+    border: 1px solid var(--color-border);
 }
 
 /* Modal Styles */
@@ -230,10 +270,10 @@ input[type="checkbox"] {
 }
 
 .modal-content {
-    background-color: #fff;
+    background-color: var(--color-bg-secondary);
     padding: 1.5rem;
     border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--color-border);
     width: 90%;
     max-width: 450px;
     position: relative;
@@ -255,7 +295,7 @@ input[type="checkbox"] {
     top: 12px;
     font-size: 24px;
     cursor: pointer;
-    color: #666;
+    color: var(--color-text);
     width: 24px;
     height: 24px;
     line-height: 24px;
@@ -267,22 +307,22 @@ input[type="checkbox"] {
 }
 
 .modal-close:hover {
-    color: #333;
-    background-color: #f0f0f0;
+    color: var(--color-gold);
+    background-color: var(--color-bg);
 }
 
 #modalTitle {
     margin: 0 0 1rem 0;
     padding-right: 2rem;
     font-size: 1.3rem;
-    color: #333;
+    color: var(--color-gold);
     text-align: center;
 }
 
 #modalMessage {
     margin: 0 0 1.5rem 0;
     line-height: 1.5;
-    color: #666;
+    color: var(--color-text);
     text-align: center;
 }
 
@@ -318,24 +358,6 @@ input[type="checkbox"] {
     }
 }
 
-.btn-primary {
-    background-color: #007bff;
-    color: white;
-}
-
-.btn-primary:hover {
-    background-color: #0056b3;
-}
-
-.btn-secondary {
-    background-color: #6c757d;
-    color: white;
-}
-
-.btn-secondary:hover {
-    background-color: #545b62;
-}
-
 /* Animation */
 @keyframes modalFadeIn {
     from {
@@ -364,21 +386,28 @@ input[type="checkbox"] {
 }
 
 .module-btn {
-    background-color: #f0f0f0;
-    color: #333;
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text);
     padding: 0.75rem 1.5rem;
     border-radius: 4px;
-    border: none;
+    border: 1px solid var(--color-border);
+    transition: all 0.3s ease;
 }
 
 .module-btn.active {
-    background-color: #007bff;
-    color: white;
+    background-color: var(--color-gold);
+    color: var(--color-black);
+    border-color: var(--color-gold);
 }
 
 .module-btn[style*="display: ''"],
 .module-btn[style*="display:''"] {
     display: inline-block;
+}
+
+.module-btn:hover {
+    background-color: var(--color-gold-transparent);
+    color: var(--color-text);
 }
 
 .feature-nav {
@@ -407,29 +436,31 @@ input[type="checkbox"] {
 
 .filter-input[type="date"] {
     padding: 5px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--color-border);
     border-radius: 4px;
     font-size: 14px;
+    background-color: var(--color-bg);
+    color: var(--color-text);
 }
 
 .filter-button {
     padding: 5px 10px;
     font-size: 14px;
-    height: 31px;  /* Gleiche Höhe wie die Datums-Inputs */
-    background-color: #007bff;
-    color: white;
+    height: 31px;
+    background-color: var(--color-gold);
+    color: var(--color-black);
     border: none;
     border-radius: 4px;
     cursor: pointer;
 }
 
 .filter-button:hover {
-    background-color: #0056b3;
+    background-color: var(--color-gold-transparent);
 }
 
 .filter-button-reset {
     background-color: #dc3545;
-    margin-left: auto; /* Schiebt den Button nach rechts */
+    margin-left: auto;
 }
 
 .filter-button-reset:hover {
@@ -453,7 +484,7 @@ input[type="checkbox"] {
     }
     
     .filter-button-reset {
-        margin-left: 0; /* Zurücksetzen für mobile Ansicht */
+        margin-left: 0;
     }
 }
 
@@ -466,6 +497,7 @@ input[type="checkbox"] {
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
+    color: var(--color-text);
 }
 
 .form-group label::after {
@@ -485,14 +517,16 @@ input[type="checkbox"] {
 .form-group textarea {
     width: 100%;
     padding: 8px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-border);
     border-radius: 4px;
     font-size: 14px;
+    background-color: var(--color-bg);
+    color: var(--color-text);
 }
 
 .submit-button {
-    background-color: #28a745;
-    color: white;
+    background-color: var(--color-gold);
+    color: var(--color-black);
     padding: 10px 20px;
     border: none;
     border-radius: 4px;
@@ -500,10 +534,11 @@ input[type="checkbox"] {
     width: 100%;
     font-size: 16px;
     margin-top: 20px;
+    font-weight: bold;
 }
 
 .submit-button:hover {
-    background-color: #218838;
+    background-color: var(--color-gold-transparent);
 }
 
 /* Pagination Styles */
@@ -518,20 +553,22 @@ input[type="checkbox"] {
 
 .pagination button {
     padding: 0.5rem 1rem;
-    background: #007bff;
-    color: white;
+    background-color: var(--color-gold);
+    color: var(--color-black);
     border: none;
     border-radius: 4px;
     cursor: pointer;
 }
 
 .pagination button:disabled {
-    background: #cccccc;
+    background-color: var(--color-disabled);
+    color: var(--color-text-secondary);
     cursor: not-allowed;
 }
 
 .pagination #pageInfo {
     font-size: 0.9rem;
+    color: var(--color-text);
 }
 
 /* Entries Filter Styles */
@@ -544,28 +581,30 @@ input[type="checkbox"] {
 
 .entries-filter select {
     padding: 0.3rem;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-border);
     border-radius: 4px;
+    background-color: var(--color-bg);
+    color: var(--color-text);
 }
 
 /* Bestandsstatus-Styles */
 .stock-critical {
-    background-color: #ffebee;
-    color: #c62828;
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
     font-weight: bold;
     cursor: help;
 }
 
 .stock-warning {
-    background-color: #fff3e0;
-    color: #ef6c00;
+    background-color: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
     font-weight: bold;
     cursor: help;
 }
 
 .stock-normal {
-    background-color: #e8f5e9;
-    color: #2e7d32;
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #28a745;
 }
 
 /* Tooltip-Styling */
@@ -581,8 +620,9 @@ input[type="checkbox"] {
     left: 50%;
     transform: translateX(-50%);
     padding: 8px;
-    background-color: rgba(0, 0, 0, 0.8);
-    color: white;
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
     border-radius: 4px;
     font-size: 14px;
     white-space: nowrap;
@@ -613,7 +653,7 @@ table td, table th {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -627,8 +667,8 @@ table td, table th {
     transform: translate(-50%, -50%);
     width: 30px;
     height: 30px;
-    border: 3px solid #f3f3f3;
-    border-top: 3px solid #3498db;
+    border: 3px solid var(--color-border);
+    border-top: 3px solid var(--color-gold);
     border-radius: 50%;
     animation: spin 1s linear infinite;
     z-index: 1;
@@ -637,20 +677,22 @@ table td, table th {
 .filter-summary {
     margin: 10px 0;
     padding: 10px;
-    background: #f8f9fa;
+    background-color: var(--color-bg-secondary);
     border-radius: 4px;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    border: 1px solid var(--color-border);
 }
 
 .filter-tag {
     display: inline-flex;
     align-items: center;
-    background: #e9ecef;
+    background-color: var(--color-bg);
     padding: 4px 8px;
     border-radius: 4px;
     font-size: 0.9em;
+    border: 1px solid var(--color-border);
 }
 
 .filter-tag .remove-filter {
@@ -665,12 +707,12 @@ table td, table th {
 }
 
 select.active-filter {
-    border-color: #3498db;
-    background-color: #f8f9fa;
+    border-color: var(--color-gold);
+    background-color: var(--color-bg-secondary);
 }
 
 .filter-controls select:disabled {
-    background-color: #e9ecef;
+    background-color: var(--color-disabled);
     cursor: not-allowed;
 }
 
@@ -680,7 +722,7 @@ select.active-filter {
 }
 
 .no-filters {
-    color: #6c757d;
+    color: var(--color-text-secondary);
     font-style: italic;
     padding: 5px 0;
 } 
