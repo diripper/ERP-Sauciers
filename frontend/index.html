@@ -98,20 +98,42 @@
                     <!-- Hier werden die verschiedenen Ansichten dynamisch geladen -->
                     <div id="inventoryListView" class="inventory-view hidden">
                         <h2>Bestandsübersicht</h2>
+                        <div class="filter-controls">
+                            <select id="stockLocationFilter">
+                                <option value="">Lagerort wählen...</option>
+                            </select>
+                            <select id="stockArticleFilter">
+                                <option value="">Artikel wählen...</option>
+                            </select>
+                            <button id="applyStockFilters" class="btn btn-primary">Filter anwenden</button>
+                            <button id="resetStockFilters" class="btn btn-secondary">Filter zurücksetzen</button>
+                        </div>
+                        <div class="filter-summary" id="stockFilterSummary">
+                            <!-- Hier werden die aktiven Filter angezeigt -->
+                        </div>
+                        <div class="entries-filter">
+                            <label for="stockEntriesPerPage">Einträge pro Seite:</label>
+                            <select id="stockEntriesPerPage" class="form-control">
+                                <option value="10">10 Einträge</option>
+                                <option value="20">20 Einträge</option>
+                                <option value="50">50 Einträge</option>
+                            </select>
+                        </div>
                         <div class="table-container">
                             <table id="inventoryTable">
                                 <thead>
                                     <tr>
-                                        <th>Artikel-ID</th>
-                                        <th>Name</th>
-                                        <th>Kategorie</th>
-                                        <th>Bestand</th>
-                                        <th>Min. Bestand</th>
-                                        <th>Einheit</th>
+                                        <!-- Die Überschriften werden dynamisch geladen -->
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
                             </table>
+                        </div>
+                        
+                        <div class="pagination">
+                            <button id="prevStockPage" class="pagination-button" disabled>&laquo;</button>
+                            <span id="stockPageInfo">Seite <span id="currentStockPage">1</span> von <span id="totalStockPages">1</span></span>
+                            <button id="nextStockPage" class="pagination-button">→</button>
                         </div>
                     </div>
 

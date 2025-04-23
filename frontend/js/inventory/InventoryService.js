@@ -11,7 +11,8 @@ class InventoryService {
         // Verbessertes Cache-System
         this._cache = {
             movements: new Map(),
-            references: new Map()
+            references: new Map(),
+            stock: new Map()
         };
         this._cacheConfig = {
             movements: {
@@ -20,6 +21,10 @@ class InventoryService {
             },
             references: {
                 duration: 300000, // 5 Minuten für Referenzdaten
+                lastUpdate: null
+            },
+            stock: {
+                duration: 60000, // 1 Minute für Bestandsdaten
                 lastUpdate: null
             }
         };
@@ -421,7 +426,103 @@ class InventoryService {
     _invalidateAllCaches() {
         this._invalidateCache('movements');
         this._invalidateCache('references');
+        this._invalidateCache('stock');
         console.log('Alle Caches wurden invalidiert');
+    }
+
+    /**
+     * Lädt den aktuellen Bestand aus dem Google Sheet
+     * @param {Object} options - Filteroptionen (location, article)
+     * @returns {Promise<Object>} - Inventardaten
+     */
+    async loadStockData(options = {}) {
+        const cacheKey = JSON.stringify(options);
+        const cachedData = this._getCache('stock', cacheKey);
+        
+        if (cachedData) {
+            console.log('Verwende gecachte Bestandsdaten');
+            return cachedData;
+        }
+
+        try {
+            console.log('Lade Bestandsdaten vom Server mit Optionen:', options);
+            if (!this.token) {
+                this.token = sessionStorage.getItem('token');
+                if (!this.token) {
+                    throw new Error('Kein gültiger Token vorhanden');
+                }
+            }
+
+            // Erstelle URL mit Query-Parametern
+            const url = new URL('/api/inventory/stock', window.location.origin);
+            
+            // Füge Parameter hinzu
+            if (options.location) url.searchParams.append('location', options.location);
+            if (options.article) url.searchParams.append('article', options.article);
+            if (options.page) url.searchParams.append('page', options.page);
+            if (options.limit) url.searchParams.append('limit', options.limit);
+            
+            // Cache-Busting
+            url.searchParams.append('nocache', Date.now());
+
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${this.token}`,
+                    'Cache-Control': 'no-cache, no-store, must-revalidate'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Fehler beim Laden der Bestandsdaten: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.message || 'Fehler beim Laden der Bestandsdaten');
+            }
+
+            // Speichere im Cache
+            this._setCache('stock', cacheKey, data);
+            
+            return data;
+        } catch (error) {
+            console.error('Fehler beim Laden der Bestandsdaten:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Hilft bei der Formatierung der Bestandsdaten für die Anzeige
+     */
+    formatStockData(stockData) {
+        if (!stockData || !stockData.items || !stockData.items.length) {
+            return [];
+        }
+
+        return stockData.items.map(item => {
+            // Bestimmung des Bestandsstatus
+            let stockStatus = 'normal';
+            let statusMessage = 'Bestand normal';
+            
+            if (item.Bestand && item.MinBestand) {
+                const currentStock = parseInt(item.Bestand);
+                const minStock = parseInt(item.MinBestand);
+                
+                if (currentStock <= 0) {
+                    stockStatus = 'critical';
+                    statusMessage = 'Kein Bestand vorhanden!';
+                } else if (currentStock <= minStock) {
+                    stockStatus = 'warning';
+                    statusMessage = 'Bestand unter Minimalbestand!';
+                }
+            }
+            
+            return {
+                ...item,
+                _stockStatus: stockStatus,
+                _statusMessage: statusMessage
+            };
+        });
     }
 }
 

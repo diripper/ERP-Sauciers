@@ -13,7 +13,8 @@ const permissions = {
     inventory: {
         view: ['admin', 'inventory_viewer', 'inventory_manager'],
         edit: ['admin', 'inventory_manager'],
-        delete: ['admin']
+        delete: ['admin'],
+        stock: ['admin', 'inventory_manager']
     }
 };
 

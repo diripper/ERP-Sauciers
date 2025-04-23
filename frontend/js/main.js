@@ -749,15 +749,87 @@ function showSessionTimeoutDialog() {
 }
 
 // Event-Listener für Inventory-Buttons
-document.getElementById('showInventoryMovements').addEventListener('click', async () => {
-    try {
-        console.log('Lade Warenwirtschaft-Bewegungen...');
-        hideAllInventoryViews();
-        document.getElementById('inventoryMovementsView').classList.remove('hidden');
-        await loadMovements();
-        console.log('Bewegungen geladen');
-    } catch (error) {
-        console.error('Fehler beim Laden der Bewegungen:', error);
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Dom Content geladen, initialisiere Inventory-Button Event-Listener...');
+    
+    // Prüfe, ob die Elemente vorhanden sind
+    const showInventoryList = document.getElementById('showInventoryList');
+    const showInventoryMovements = document.getElementById('showInventoryMovements');
+    const showNewMovement = document.getElementById('showNewMovement');
+    
+    console.log('Prüfe Inventory-Buttons:', {
+        showInventoryList: showInventoryList ? 'gefunden' : 'NICHT GEFUNDEN!',
+        showInventoryMovements: showInventoryMovements ? 'gefunden' : 'NICHT GEFUNDEN!',
+        showNewMovement: showNewMovement ? 'gefunden' : 'NICHT GEFUNDEN!'
+    });
+    
+    // Prüfe auch ob inventoryUI initialisiert ist
+    console.log('inventoryUI ist', inventoryUI ? 'initialisiert' : 'NICHT initialisiert');
+    
+    // Hinweis auf alle verfügbaren Buttons im DOM
+    console.log('Alle Buttons im DOM:', 
+        Array.from(document.querySelectorAll('button')).map(b => ({ id: b.id, text: b.textContent }))
+    );
+    
+    if (showInventoryList) {
+        showInventoryList.addEventListener('click', () => {
+            if (!inventoryUI) {
+                console.error('inventoryUI ist nicht initialisiert');
+                return;
+            }
+            console.log('Button geklickt: Bestandsübersicht');
+            
+            // Für Debugging-Zwecke direkter Zugriff auf Container-Elemente
+            console.log('Container-Elemente in InventoryUI:', {
+                container: inventoryUI.elements.container,
+                inventoryListView: inventoryUI.elements.container.inventoryList ? 'gefunden' : 'nicht gefunden',
+                inventoryMovementsView: inventoryUI.elements.container.movements ? 'gefunden' : 'nicht gefunden',
+                newMovementView: inventoryUI.elements.container.newMovement ? 'gefunden' : 'nicht gefunden'
+            });
+            
+            inventoryUI.showView('inventoryListView');
+        });
+    }
+    
+    if (showInventoryMovements) {
+        showInventoryMovements.addEventListener('click', () => {
+            if (!inventoryUI) {
+                console.error('inventoryUI ist nicht initialisiert');
+                return;
+            }
+            console.log('Button geklickt: Bewegungsübersicht');
+            
+            // Für Debugging-Zwecke direkter Zugriff auf Container-Elemente
+            console.log('Container-Elemente in InventoryUI:', {
+                container: inventoryUI.elements.container,
+                inventoryListView: inventoryUI.elements.container.inventoryList ? 'gefunden' : 'nicht gefunden',
+                inventoryMovementsView: inventoryUI.elements.container.movements ? 'gefunden' : 'nicht gefunden',
+                newMovementView: inventoryUI.elements.container.newMovement ? 'gefunden' : 'nicht gefunden'
+            });
+            
+            inventoryUI.showView('inventoryMovementsView');
+        });
+    }
+    
+    if (showNewMovement) {
+        showNewMovement.addEventListener('click', () => {
+            if (!inventoryUI) {
+                console.error('inventoryUI ist nicht initialisiert');
+                return;
+            }
+            console.log('Button geklickt: Bewegungen buchen');
+            
+            // Für Debugging-Zwecke direkter Zugriff auf Container-Elemente
+            console.log('Container-Elemente in InventoryUI:', {
+                container: inventoryUI.elements.container,
+                inventoryListView: inventoryUI.elements.container.inventoryList ? 'gefunden' : 'nicht gefunden',
+                inventoryMovementsView: inventoryUI.elements.container.movements ? 'gefunden' : 'nicht gefunden',
+                newMovementView: inventoryUI.elements.container.newMovement ? 'gefunden' : 'nicht gefunden'
+            });
+            
+            inventoryUI.showView('newMovementView');
+            loadNewMovementFormOptions();
+        });
     }
 });
 
@@ -860,13 +932,6 @@ function hideAllInventoryViews() {
         view.classList.add('hidden');
     });
 }
-
-// Event-Listener für "Bewegungen buchen" Button
-document.getElementById('showNewMovement').addEventListener('click', () => {
-    hideAllInventoryViews();
-    document.getElementById('newMovementView').classList.remove('hidden');
-    loadNewMovementFormOptions();
-});
 
 // Funktion zum Laden der Auswahloptionen für das Buchungsformular
 function loadNewMovementFormOptions() {

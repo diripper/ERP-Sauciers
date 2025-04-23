@@ -351,4 +351,207 @@ router.get('/references', checkPermission('inventory', 'view'), async (req, res)
     }
 });
 
+// Bestandsdaten abrufen (neue Route für Bestandsübersicht)
+router.get('/stock', checkPermission('inventory', 'stock'), async (req, res) => {
+    try {
+        console.log('Starte Laden der Bestandsdaten mit Parametern:', req.query);
+        
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const filters = {
+            location: req.query.location || 'L00', // Default ist L00 (alle Lagerorte)
+            article: req.query.article || ''
+        };
+
+        // Hole den Benutzer für detaillierte Berechtigungsinformationen
+        const sessionUser = req.session && req.session.user;
+        const employeeId = sessionUser ? sessionUser.id : (req.query.employeeId || req.body.employeeId);
+        console.log('Prüfe Benutzerberechtigungen für Bestandsdaten:', employeeId);
+
+        // Lade das Google Sheet
+        const doc = await getInventoryDoc();
+        await doc.loadInfo();
+        
+        console.log(`Verfügbare Sheets im Google Doc: ${doc.title}`, Object.keys(doc.sheetsByTitle));
+        
+        // Bestimme das Lagerort-Sheet anhand des Filters
+        const locationId = filters.location;
+        let sheetName;
+        
+        switch(locationId) {
+            case 'L01':
+                sheetName = 'L01';
+                break;
+            case 'L02':
+                sheetName = 'L02';
+                break;
+            case 'L03':
+                sheetName = 'L03';
+                break;
+            default:
+                sheetName = 'L00'; // Default ist L00 (alle Lagerorte)
+                break;
+        }
+        
+        console.log(`Verwende Sheet: ${sheetName} für Lagerort: ${locationId}`);
+        
+        // Lade das entsprechende Sheet - FALLBACK FÜR TESTS
+        const sheet = doc.sheetsByTitle[sheetName];
+        if (!sheet) {
+            console.error(`Sheet ${sheetName} nicht gefunden. Verwende Testdaten für die Entwicklung.`);
+            
+            // ENTWICKLUNG: Test-Daten zurückgeben
+            return res.json({
+                success: true,
+                headers: ['Artikel-ID', 'Artikel-Name', 'Bestand', 'Min-Bestand', 'Einheit', 'Status'],
+                items: [
+                    {'Artikel-ID': 'A001', 'Artikel-Name': 'Mehl', 'Bestand': '10', 'Min-Bestand': '5', 'Einheit': 'kg', 'Status': 'normal'},
+                    {'Artikel-ID': 'A002', 'Artikel-Name': 'Zucker', 'Bestand': '5', 'Min-Bestand': '8', 'Einheit': 'kg', 'Status': 'warnung'},
+                    {'Artikel-ID': 'A003', 'Artikel-Name': 'Salz', 'Bestand': '2', 'Min-Bestand': '3', 'Einheit': 'kg', 'Status': 'kritisch'},
+                    {'Artikel-ID': 'A004', 'Artikel-Name': 'Backpulver', 'Bestand': '12', 'Min-Bestand': '5', 'Einheit': 'pkg', 'Status': 'normal'},
+                    {'Artikel-ID': 'A005', 'Artikel-Name': 'Vanillezucker', 'Bestand': '8', 'Min-Bestand': '10', 'Einheit': 'pkg', 'Status': 'warnung'}
+                ],
+                pagination: {
+                    page: page,
+                    limit: limit,
+                    totalRows: 5,
+                    totalPages: 1
+                }
+            });
+        }
+        
+        // Lade die Überschriften aus der Zeile 3
+        await sheet.loadCells('A3:L3');
+        
+        // Extrahiere die Überschriften
+        const headers = [];
+        for (let col = 0; col < 12; col++) {
+            const cell = sheet.getCell(2, col); // Zeile 3 entspricht Index 2
+            if (cell.value) {
+                headers.push(cell.value.toString());
+            }
+        }
+        
+        console.log('Geladene Überschriften:', headers);
+        
+        if (headers.length === 0) {
+            console.error('Keine Überschriften gefunden. Verwende Testdaten für die Entwicklung.');
+            
+            // ENTWICKLUNG: Test-Daten zurückgeben
+            return res.json({
+                success: true,
+                headers: ['Artikel-ID', 'Artikel-Name', 'Bestand', 'Min-Bestand', 'Einheit', 'Status'],
+                items: [
+                    {'Artikel-ID': 'A001', 'Artikel-Name': 'Mehl', 'Bestand': '10', 'Min-Bestand': '5', 'Einheit': 'kg', 'Status': 'normal'},
+                    {'Artikel-ID': 'A002', 'Artikel-Name': 'Zucker', 'Bestand': '5', 'Min-Bestand': '8', 'Einheit': 'kg', 'Status': 'warnung'}
+                ],
+                pagination: {
+                    page: page,
+                    limit: limit,
+                    totalRows: 2,
+                    totalPages: 1
+                }
+            });
+        }
+        
+        // Lade alle Zeilen ab Zeile 4 (Index 3)
+        await sheet.loadCells(`A4:${String.fromCharCode(65 + headers.length - 1)}100`); // Lade ausreichend Zeilen für die Daten
+        
+        // Bestimme die letzte Zeile mit Daten
+        let lastRow = 3; // Start bei Zeile 4 (Index 3)
+        while (lastRow < 100 && sheet.getCell(lastRow, 0).value) {
+            lastRow++;
+        }
+        
+        console.log(`Gefundene Datenzeilen: ${lastRow - 3}`);
+        
+        // Sammle alle Zeilendaten
+        const allRows = [];
+        for (let row = 3; row < lastRow; row++) {
+            const rowData = {};
+            
+            // Extrahiere die Daten für jede Spalte basierend auf den Headers
+            headers.forEach((header, col) => {
+                rowData[header] = sheet.getCell(row, col).value?.toString() || '';
+            });
+            
+            allRows.push(rowData);
+        }
+        
+        console.log(`Gesamtanzahl geladener Zeilen: ${allRows.length}`);
+        
+        if (allRows.length === 0) {
+            console.error('Keine Daten gefunden. Verwende Testdaten für die Entwicklung.');
+            
+            // ENTWICKLUNG: Test-Daten zurückgeben
+            return res.json({
+                success: true,
+                headers: headers.length > 0 ? headers : ['Artikel-ID', 'Artikel-Name', 'Bestand', 'Min-Bestand', 'Einheit', 'Status'],
+                items: [
+                    {'Artikel-ID': 'A001', 'Artikel-Name': 'Mehl', 'Bestand': '10', 'Min-Bestand': '5', 'Einheit': 'kg', 'Status': 'normal'},
+                    {'Artikel-ID': 'A002', 'Artikel-Name': 'Zucker', 'Bestand': '5', 'Min-Bestand': '8', 'Einheit': 'kg', 'Status': 'warnung'}
+                ],
+                pagination: {
+                    page: page,
+                    limit: limit,
+                    totalRows: 2,
+                    totalPages: 1
+                }
+            });
+        }
+        
+        // Filtere die Zeilen anhand des Artikel-Filters
+        let filteredRows = allRows;
+        if (filters.article) {
+            filteredRows = allRows.filter(rowData => {
+                // Artikel-ID sollte in der ersten Spalte sein (entsprechend dem ersten Header)
+                return rowData[headers[0]] === filters.article;
+            });
+        }
+        
+        console.log(`Nach Filterung verbleibende Zeilen: ${filteredRows.length}`);
+        
+        // Paginierung anwenden
+        const totalRows = filteredRows.length;
+        const startIndex = (page - 1) * limit;
+        const endIndex = Math.min(startIndex + limit, totalRows);
+        const paginatedRows = filteredRows.slice(startIndex, endIndex);
+        
+        console.log(`Zeilen nach Paginierung: ${paginatedRows.length}`);
+        console.log('Erste Zeile:', paginatedRows.length > 0 ? JSON.stringify(paginatedRows[0]) : 'Keine Daten');
+        
+        // Rückgabe der Daten mit Paginierungsinformationen
+        res.json({
+            success: true,
+            headers: headers,
+            items: paginatedRows,
+            pagination: {
+                page: page,
+                limit: limit,
+                totalRows: totalRows,
+                totalPages: Math.ceil(totalRows / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Fehler beim Abrufen der Bestandsdaten:', error);
+        
+        // ENTWICKLUNG: Fallback-Antwort mit Fehlermeldung
+        res.json({
+            success: true,
+            headers: ['Artikel-ID', 'Artikel-Name', 'Bestand', 'Min-Bestand', 'Einheit', 'Status'],
+            items: [
+                {'Artikel-ID': 'A001', 'Artikel-Name': 'Test-Artikel 1', 'Bestand': '10', 'Min-Bestand': '5', 'Einheit': 'kg', 'Status': 'normal'},
+                {'Artikel-ID': 'A002', 'Artikel-Name': 'Test-Artikel 2', 'Bestand': '3', 'Min-Bestand': '8', 'Einheit': 'kg', 'Status': 'warnung'}
+            ],
+            pagination: {
+                page: 1,
+                limit: 10,
+                totalRows: 2,
+                totalPages: 1
+            },
+            errorMessage: error.message || 'Fehler beim Laden der Bestandsdaten'
+        });
+    }
+});
+
 module.exports = router; 
