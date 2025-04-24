@@ -1,13 +1,26 @@
-/* Grundlegende Styles */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
 :root {
     /* Basis-Schriftgröße für Desktop */
     font-size: 16px;
+    
+    /* CI-Farben */
+    --color-gold: #d3af37;
+    --color-gold-transparent: #695515;
+    --color-light-gold: #f6efdb;
+    --color-black: #100b01;
+    
+    /* Dark Mode Farben */
+    --color-bg: #1a1a1a;
+    --color-bg-secondary: #2a2a2a;
+    --color-text: #e0e0e0;
+    --color-text-secondary: #b0b0b0;
+    --color-primary: var(--color-gold);
+    --color-secondary: var(--color-gold-transparent);
+    
+    /* Komponenten-Farben */
+    --color-border: #333333;
+    --color-hover: var(--color-gold-transparent);
+    --color-active: var(--color-gold);
+    --color-disabled: #444444;
 }
 
 /* Mobile Schriftgröße */
@@ -18,15 +31,20 @@
 }
 
 body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
     font-family: Arial, sans-serif;
     line-height: 1.6;
-    background-color: #f4f4f4;
 }
 
 .container {
     max-width: 800px;
     margin: 1rem auto;
     padding: 0.5rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    }
 }
 
 @media (max-width: 768px) {
@@ -42,18 +60,18 @@ body {
 
 /* Formular Styles */
 .form-container {
-    background: white;
+    background-color: var(--color-bg-secondary);
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid var(--color-border);
     max-width: 600px;
     margin: 0 auto;
-}
+ }
 
 @media (max-width: 768px) {
     .form-container {
         padding: 1rem;
-    }
+   }
 }
 
 form {
@@ -62,26 +80,59 @@ form {
     gap: 1rem;
 }
 
+input, select, textarea {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    padding: 8px;
+    border-radius: 4px;
+}
+
 input, select {
     padding: 0.5rem;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 1rem;
 }
+input:focus, select:focus, textarea:focus {
+    border-color: var(--color-gold);
+    outline: none;
+}
 
-button {
-    padding: 0.5rem;
-    background: #007bff;
-    color: white;
+button, .button {
+    background-color: var(--color-gold);
+    color: var(--color-black);
     border: none;
+    padding: 8px 16px;
     border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.2s ease;
-    font-size: 1rem;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+button {
+  padding: 0.5rem;
+  background-color: var(--color-gold);
+  color: var(--color-black);
+  border: none;
+
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 1rem;
 }
 
 button:hover {
     background: #0056b3;
+}
+
+button:hover, .button:hover {
+    background-color: var(--color-gold-transparent);
+    transform: translateY(-1px);
+}
+
+button:disabled, .button:disabled {
+    background-color: var(--color-disabled);
+    color: var(--color-text-secondary);
+    cursor: not-allowed;
 }
 
 /* Header und Navigation */
@@ -116,6 +167,7 @@ button:hover {
 
 #userInfo {
     font-weight: bold;
+    color: var(--color-gold);
 }
 
 /* Tabellen Styles */
@@ -123,7 +175,8 @@ button:hover {
     width: 100%;
     overflow-x: auto;
     margin-top: 20px;
-    background: white;
+    background-color: var(--color-bg-secondary);
+    
     border-radius: 4px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
@@ -149,11 +202,13 @@ th, td {
 }
 
 th {
-    background-color: #f4f4f4;
+    background-color: var(--color-bg-secondary);
+    color: var(--color-gold);
     position: sticky;
     top: 0;
     z-index: 1;
 }
+border: 1px solid var(--color-border);
 
 tr:nth-child(even) {
     background-color: #f9f9f9;
@@ -208,6 +263,7 @@ input[type="checkbox"] {
     padding: 0.75rem;
     background-color: #f8f9fa;
     border-radius: 4px;
+    background-color: var(--color-bg-secondary);
     text-align: right;
 }
 
@@ -230,7 +286,7 @@ input[type="checkbox"] {
 }
 
 .modal-content {
-    background-color: #fff;
+    background-color: var(--color-bg-secondary);
     padding: 1.5rem;
     border-radius: 8px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
@@ -255,13 +311,13 @@ input[type="checkbox"] {
     top: 12px;
     font-size: 24px;
     cursor: pointer;
-    color: #666;
+    color: var(--color-text);
     width: 24px;
     height: 24px;
     line-height: 24px;
     text-align: center;
     border-radius: 50%;
-    transition: all 0.2s ease;
+    transition: all 0.2s ease;    
     background: none;
     border: none;
 }
@@ -275,13 +331,13 @@ input[type="checkbox"] {
     margin: 0 0 1rem 0;
     padding-right: 2rem;
     font-size: 1.3rem;
-    color: #333;
+    color: var(--color-gold);
     text-align: center;
 }
 
 #modalMessage {
     margin: 0 0 1.5rem 0;
-    line-height: 1.5;
+    line-height: 1.5; 
     color: #666;
     text-align: center;
 }
@@ -319,12 +375,12 @@ input[type="checkbox"] {
 }
 
 .btn-primary {
-    background-color: #007bff;
-    color: white;
+  background-color: var(--color-gold);
+  color: var(--color-black);
 }
 
 .btn-primary:hover {
-    background-color: #0056b3;
+  background-color: var(--color-gold-transparent);
 }
 
 .btn-secondary {
@@ -361,6 +417,7 @@ input[type="checkbox"] {
     gap: 1rem;
     margin-bottom: 1rem;
     width: 100%;
+    border: 1px solid var(--color-border);
 }
 
 .module-btn {
@@ -372,8 +429,13 @@ input[type="checkbox"] {
 }
 
 .module-btn.active {
-    background-color: #007bff;
-    color: white;
+  background-color: var(--color-gold);
+  color: var(--color-black);
+}
+
+.module-btn:hover {
+  background-color: var(--color-gold-transparent);
+  color: var(--color-text);
 }
 
 .module-btn[style*="display: ''"],
@@ -412,16 +474,21 @@ input[type="checkbox"] {
     font-size: 14px;
 }
 
+background-color: var(--color-bg);
+    color: var(--color-text);
 .filter-button {
-    padding: 5px 10px;
-    font-size: 14px;
-    height: 31px;  /* Gleiche Höhe wie die Datums-Inputs */
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+  padding: 5px 10px;
+  font-size: 14px;
+  height: 31px; /* Gleiche Höhe wie die Datums-Inputs */
+  background-color: var(--color-gold);
+  color: var(--color-black);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
+background-color: var(--color-gold);
+    color: var(--color-black);
+    border: none;
 
 .filter-button:hover {
     background-color: #0056b3;
@@ -518,16 +585,17 @@ input[type="checkbox"] {
 
 .pagination button {
     padding: 0.5rem 1rem;
-    background: #007bff;
-    color: white;
+    background-color: var(--color-gold);
+    color: var(--color-black);
     border: none;
     border-radius: 4px;
     cursor: pointer;
 }
 
 .pagination button:disabled {
-    background: #cccccc;
+    background-color: var(--color-disabled);
     cursor: not-allowed;
+    background-color: var(--color-disabled);
 }
 
 .pagination #pageInfo {
@@ -552,6 +620,9 @@ input[type="checkbox"] {
 .stock-critical {
     background-color: #ffebee;
     color: #c62828;
+    background-color: rgba(220, 53, 69, 0.1);
+    
+    color: #dc3545;
     font-weight: bold;
     cursor: help;
 }
@@ -559,10 +630,14 @@ input[type="checkbox"] {
 .stock-warning {
     background-color: #fff3e0;
     color: #ef6c00;
+    background-color: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
     font-weight: bold;
     cursor: help;
 }
 
+.stock-normal {
+    background-color: rgba(40, 167, 69, 0.1);
 .stock-normal {
     background-color: #e8f5e9;
     color: #2e7d32;
@@ -581,7 +656,10 @@ input[type="checkbox"] {
     left: 50%;
     transform: translateX(-50%);
     padding: 8px;
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: var(--color-bg-secondary);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    
     color: white;
     border-radius: 4px;
     font-size: 14px;
@@ -612,10 +690,11 @@ table td, table th {
     top: 0;
     left: 0;
     right: 0;
-    bottom: 0;
+    bottom: 0;    
     background: rgba(255, 255, 255, 0.7);
     display: flex;
     justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
     align-items: center;
 }
 
@@ -624,7 +703,10 @@ table td, table th {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%);
+    width: 30px;
+    height: 30px;
+    border: 3px solid var(--color-border);
     width: 30px;
     height: 30px;
     border: 3px solid #f3f3f3;
@@ -635,13 +717,16 @@ table td, table th {
 }
 
 .filter-summary {
-    margin: 10px 0;
-    padding: 10px;
     background: #f8f9fa;
+    margin: 10px 0;
+    padding: 10px; 
     border-radius: 4px;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    background-color: var(--color-bg-secondary);
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
 }
 
 .filter-tag {
@@ -650,6 +735,8 @@ table td, table th {
     background: #e9ecef;
     padding: 4px 8px;
     border-radius: 4px;
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
     font-size: 0.9em;
 }
 
@@ -665,6 +752,8 @@ table td, table th {
 }
 
 select.active-filter {
+    background-color: #f8f9fa;
+    border-color: #3498db;
     border-color: #3498db;
     background-color: #f8f9fa;
 }
@@ -674,6 +763,8 @@ select.active-filter {
     cursor: not-allowed;
 }
 
+    background-color: var(--color-disabled);
+    cursor: not-allowed;
 @keyframes spin {
     0% { transform: translate(-50%, -50%) rotate(0deg); }
     100% { transform: translate(-50%, -50%) rotate(360deg); }
@@ -681,6 +772,7 @@ select.active-filter {
 
 .no-filters {
     color: #6c757d;
+        color: var(--color-text-secondary);
     font-style: italic;
     padding: 5px 0;
 } 
@@ -688,10 +780,14 @@ select.active-filter {
 /* Statusindikatoren für Bestandsübersicht */
 .stock-normal {
     background-color: #e8f5e9;
+    
 }
 
 .stock-warnung, .stock-warning {
-    background-color: #fff8e1;
+    background-color: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+    background-color: #fff8e1;  
+    
 }
 
 .stock-kritisch, .stock-critical {
