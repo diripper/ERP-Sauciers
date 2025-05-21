@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "erp-sauciers",
+  "private_key_id": "4a7ff65626abe7a14a1933256230b762a825c2e6",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDuarB/VrQsJNDw\nL7dAD40413a43UGLGvSYHwnOdoZ75Mi0cjW9fGYHrBa078PSq+3bvkDmx/xNeAl/\nnVduI7aUtrO6d+KvFDvIehK/fea73N21wRopPhHNn+7d2l7W1zXHfEzWHpzptnr5\nxwVRQCQP7ibU5SYem6QNG40kYiyAkKsbozNrQmv0wQLhCuUDnXodvgLcLSc2qCcZ\nleWFPLqgnkB2xJqJJqmItnSc66aa7f8No9lxsr07I/AFYcuGMgkUMw+v32FI4mNa\ntw16UN2eZ1hJuAeMQlpL+DuE4HMnbAkSCmTVSIqB8TrNfjQoNTIzeKstzQnKG/mA\nc+GBq8Q3AgMBAAECggEAFk8MtYLzGE+tmVFDBWSEeLV4mh23R1aTXTSc90u8k7/k\nTouCnyNnwf9b9JGcMjdSP3CS+W/sb4H0PukFyFGL1miDcsb1rXToOdRqXVlg4Lfv\nAFXRpoWfUYKjQvEZqg1jLoe2rNvFH6f/49ANSFKxzSfMobkmEvvJ+EwEA0vdvCh0\nXTWwWHmHZTxNsG6cM2KplbbjIvuyqRD6MJ1dbQh5D7+FF4DY/359hf5iU5hQMz56\n5MZ35/l1oDPokeVTikJJO75lVzpyuDy6DiNKJVhrJbpiB7Yg7yH7K9KFlpg66yw2\nU2gUuMSnOoiFlSONk5KMmk52xjEeMw2XEwaVhSK7gQKBgQDvAjWeOcJtTHXYIeo0\nLq7i1hjBAlBHOkNhEHiEKWTFKhuz8g9nhtlm8wzY7WPn3bKFhueVHWG5dcZPsOAq\nm22ydxyyKK3xdCE3EP/SC+K45rIFJgmLfjAJvXjoMNCmZubu442HGmNGVpZHP0qc\n2L9Kn8djLAiRfPENY1zGY00qwQKBgQD/XbVSJH6RIDp1NF2Zd9giA4Kn8/0eIKwN\nD/5cg3b3FPB4/oZlIbAyfgKnHGsvfFEbdklMSMsRlsv01QEzK56bdyDBranyE96l\nt/desa/tqZqW8duush9pA5f3XwG5Usc/r3Opqk6JJ1gbmp9LJYrajuchUqJDf+XT\n1WKPTyyE9wKBgQDA3xGRq56gQPFgBo5OqdVrK8YyCsHpmLTC4V2/mP++s6pDXfTc\nYE+T6lLVw0u50oe7hQ/gnyM7XDU6Hcvn1iGBwOkhQ/6KOGKNY2RthjXhbBkAWp+d\nN6lgUsv841ec0LFO2cZd3gd6vWjr+cEmLSrA94sZFnGbpi2H1kUJuxyMgQKBgQDU\nYTIQ2+srdZtIqMGDhmmJeFPsrP4BVXjh8EBC3s9NFOweJMjPSSJKDATWyMrYFlM6\nPLkfKZdBzKFZwOEblpZ1g7EJgw5JF39fYc3owmyngxvfl8x10QxQgT2c7TX41ECD\n1b6jB9IDPWaIpqL+k32U4a6WRyxOaQtSjzBGMbm75wKBgGKoTtH+n0GDvAFze382\nNRI9BOfbvapzbOVybRhbqXJ3fB6pPZ0cGVikiyh0oraTUbuFFPfYzXSRO4NRdSQB\n/kF+lhQR3bKzEn1WcUon7lVH+x4QncgcoxYNAb9i666ecqYChIowOEhbTStIo2G2\nWYy8jaVHxkbiOdDzgag6tGKj\n-----END PRIVATE KEY-----\n",
+  "client_email": "erp-sauciers@appspot.gserviceaccount.com",
+  "client_id": "101348346543093015729",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/erp-sauciers%40appspot.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

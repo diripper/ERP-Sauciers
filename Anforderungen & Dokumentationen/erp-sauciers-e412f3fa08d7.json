@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "erp-sauciers",
+  "private_key_id": "e412f3fa08d7db198e5e705a3da080fc227a904b",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDirwjQrUZ30ftE\nv8+OyqvvvFXlZmMIY87YofjPDUJ3MONdjN90YvifDcjZMXMhaF+E9p19afR03Dqd\nG8kqx3IPc3FZ419rZdzBDhJSceqht8l3B7E7fealdF7/McEvKbjQHSRmYE49bFje\nhU9wxgnu8dJABjleyH37IlfQEZdmuG9WmzfXwRNT8aQQw12RXMNeznMPTXvntFbA\nheTTEPPOdOLEUbvhoAbwqW+bixnC1VaepyjmIFvVUQdnPREvkHRvpVT6zg6zf3tE\nd1U5q83yaWjLGgPgmWQJVHdIqZFWq6Z3k7Kbl4Y3lP9O5639faM1KetFUvdLb1nf\nGo3vN0UpAgMBAAECggEAB32YdVnWd2jmTFMoywuGMze2YGxZ1yoCKK0whToHUVw5\nlSqtqyFGnS3lzkyIpQjXiDOkiGOHDxIEc1La2smoqptKWnmtmmVNLkl2YEhQpCuo\nMgFccU5zn9HIvlbQ7wuqRmFCJcpmp3e0N5Uw5vV6WE2gIJq8DFZkeFceDvt31O5x\nF73hGyjffdiuzxmtA43O1l0m31E19qnyakSwco4zY0hfv71XElEXi4ahclS/od6d\nx6dp1zIQqOzyAMkl46Gd0fBj8zxH/43W0da/BDh5/S/9j2EoPb7nz7Ku1Wj4pU6e\nqtjMwR9c4HMX2LUajYFbqGP/QPxYKyEwNomaHG+l0QKBgQD/ZpvVoyuauju5pWHG\nJ/t8UT/D4g6VivI4YVE9z2vB894Q7OEZRJ0Tk0YBcRWcRZGZ49GHOVyEo2nJrJZt\nr5KgANIvb1f30QM5ADg08LOnNnr3QpT75rrlUiMBRaLCnodGeLbUh9q1hX/w4kdO\nwQ9wBiIfQEXSPlzvqWjNXYsscQKBgQDjNy2yJAluw1RnL9libRSSWP3oSnpuGQi9\nfNHkNCNzUKLI5zmwh2OiPlojp0BnNRjeQULyj/ohlIITdMzUYGnwcTklYdLi/rKm\nk60nLLuLJkOsdj7FKz/Cxyb+37+905wFoJ+Ion4ei3XhVfNelnklCvzJScOz8Pgw\n0kG3G5BgOQKBgQCthRsvJLMFZq4ZTUGGjbeRGOqHvVhHRaWXpJa7tebyWStwuF+e\n+Tz3BcI0TI5wI9vugBflFZXED/pZqMZzMywdRTGIRM+xcPINkhad8UM9wgf9YeEy\n2+nyz8E0pgkUzPv/ZxhggQSY+2CXWkU0Pnqsk54vOU22r+QYeDLaBEoAIQKBgQCH\n0akADmiRDDO8xq50Fm4wmP+Vxkdu3ooJ8r3oYn46ZR4ZZ5ZlfljBV/I707M8vlGS\nMYKaShQj1Ij4pl32KXfKIXQec15DECqsRiRAAY5NvF7BjaEx7QtdG/ykaA1OpFpk\nRsJ2Q2OOUKDzRJSImvvpd6rpi61vN4C0dkqP8OsZiQKBgC88ArB+MU0wSeN0VZd2\n5PbgZhgfBph808/BMfbfscVIkEjNLMeYYyfVRlOzknLYCwz8bcoPFJl83TwULcSt\n1KPR094G/fS4qY04Qa635sd2ulCBXMp2AqlGzwcbqxSFQk9hsRMi6UE2phOgm0Vg\n/j2CrgvMeIHwrMbv7yILHlQB\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@erp-sauciers.iam.gserviceaccount.com",
+  "client_id": "117736816625712416398",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40erp-sauciers.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
