@@ -17,3 +17,4 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ERP_SAUCIERS }}
           channelId: live
           projectId: erp-sauciers
+          entryPoint: .  # Füge diese Zeile hier hinzu, achte auf die Einrückung
